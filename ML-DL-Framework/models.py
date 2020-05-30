@@ -107,14 +107,12 @@ class NeuralNet:
         return np.array(delta)
 
 
-    def train(self, X, y_labels = None, epochs = 10000, learning_rate = 0.001):
+    def train(self, X, y_labels = None, epochs = 1000, learning_rate = 0.01):
         for i in range(epochs):
             if i == 0:
                 self.weights_init()
 
             a_cache, z_cache= self.forward_propagation(X)
-
-            print(self.cost(y_labels, a_cache[-1]))
 
             gradient = self.back_propagation(y_labels, a_cache, z_cache)
 
@@ -127,18 +125,38 @@ class NeuralNet:
 if __name__ == '__main__':
     net = NeuralNet()
 
-    net.add_layer(DenseLayer(4, 2, activation = "relu"))
-    net.add_layer(DenseLayer(2, 2, activation = "relu"))
-    net.add_layer(DenseLayer(2, 3, activation = "softmax"))
+    net.add_layer(DenseLayer(2, 100, activation = "relu"))
+    net.add_layer(DenseLayer(100, 100, activation = "relu"))
+    net.add_layer(DenseLayer(100, 100, activation = "relu"))
+    net.add_layer(DenseLayer(100, 2, activation = "softmax"))
 
-    from sklearn.datasets import load_iris
+    from sklearn.datasets import make_moons
 
-    data, target = load_iris(True)
+    X_moons, y_moons = make_moons(n_samples = 1000, noise = 0.1)
 
-    one_hot = np.zeros((target.shape[0], 3))
+    from sklearn.model_selection import train_test_split
+
+    X_train, X_test, y_train, y_test = train_test_split(X_moons, y_moons, test_size = 0.2)
+
+    shuffler = np.random.permutation(len(X_train))
+
+    X_train = X_train[shuffler]
+    y_train = y_train[shuffler]
+
+    one_hot = np.zeros((y_train.shape[0], 2))
 
     for index, label in enumerate(one_hot):
-        true_class= target[index]
+        true_class = y_train[index]
         label[true_class] = 1
 
-    net.train(data, one_hot)
+    net.train(X_train, one_hot)
+
+    y_pred = []
+
+    for X in X_test:
+        output, _ = net.forward_propagation(X.reshape(X.shape[0], 1))
+        y_pred.append(np.argmax(output[-1]))
+
+    y_pred = np.array(y_pred)
+
+    print(((y_test == y_pred).sum() / len(y_pred)) * 100, "%")
