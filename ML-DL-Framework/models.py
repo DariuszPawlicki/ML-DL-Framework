@@ -28,7 +28,7 @@ class NeuralNet:
         return 1 / (1 + np.exp(-X))
 
     def softmax(self, X):
-        return np.exp(X) / np.sum(np.exp(X))
+        return np.exp(X) / np.sum(np.exp(X), axis = 1, keepdims = True)
 
     def categorical_crossentropy(self, y_labels, output, derivative = False):
         if derivative == True: # Derivative of softmax crossentropy function with respect to softmax input "X"
@@ -39,17 +39,16 @@ class NeuralNet:
     def weights_init(self):
         weights = []
 
-        for i in range(len(self.layers) - 1):
-            weights.append(np.random.randn(self.layers[i].input_shape, self.layers[i].output))
+        for i in range(len(self.layers)):
+            xavier = np.sqrt(1/self.layers[i].input_shape)
+            weights.append(np.random.randn(self.layers[i].input_shape, self.layers[i].output) * xavier)
 
         self.weights = np.array(weights)
         self.biases = np.ones((len(self.layers), 1))
 
     def forward_propagation(self, X):
-        if X.shape[0] != 1:  # Reshaping X to row vector [1, n]
+        if X.shape[1] != self.layers[0].input_shape:  # Reshaping X to row vector [1, n]
             X = X.T
-
-        gradient_tape = []
 
         z = X
 
@@ -59,88 +58,87 @@ class NeuralNet:
         a_cache.append(X)
 
         for i in range(len(self.layers)):
-            layer_gradient = []
 
             if i == len(self.layers) - 1:
-                a = self.softmax(z)
+                a = self.softmax(np.dot(z, self.weights[i]) + self.biases[i])
             else:
                 a = self.relu(np.dot(z, self.weights[i]) + self.biases[i])
-                layer_gradient.append(f"dot_product{i + 1}")
-
-            layer_gradient.append(self.layers[i].activation)
-
-            gradient_tape.append(list(reversed(layer_gradient)))
 
             a_cache.append(a)
             z_cache.append(z)
 
             z = a
 
-        return a_cache, z_cache, gradient_tape
+        return a_cache, z_cache
 
     def cost(self, y_labels, output, derivative = False):
         if derivative == True:
             return self.categorical_crossentropy(y_labels, output, derivative = True)
         return self.categorical_crossentropy(y_labels, output)
 
-    def back_propagation(self, y_labels, a_cache, z_cache, gradient_tape):
-        output = a_cache[-1] # Value of activation in the last layer
+    def back_propagation(self, y_labels, a_cache, z_cache):
+        output = a_cache[-1]
         output_error = self.cost(y_labels, output, derivative = True)
 
         delta = []
 
-        for current_layer in range(len(self.layers) - 2, -1, -1): # Indexing from 0 plus last layer is output
+        for layer in range(len(self.layers)):
+            delta.append(np.zeros((self.layers[layer].input_shape, self.layers[layer].output)))
+
+        for current_layer in range(len(self.layers) - 1, -1, -1): # Loop for deriving cost function
+                                                                  # with respect to weights[current_layer]
 
             layer_gradient = output_error
 
-            derived_layer = len(self.layers) - 2
+            derived_layer = len(self.layers) - 1
 
             while derived_layer >= current_layer:
                 if derived_layer == current_layer:
-                    layer_gradient = np.dot(layer_gradient, a_cache[current_layer - 1].T)
+                    layer_gradient = np.dot(layer_gradient.T, a_cache[current_layer])
                     break
                 else:
-                    layer_gradient = np.dot(layer_gradient, self.weights[current_layer + 1].T)
+                    layer_gradient = np.dot(layer_gradient, self.weights[derived_layer].T)
                     layer_gradient *= self.relu(z_cache[derived_layer], derivative = True)
 
                     derived_layer -= 1
 
-            delta.append(layer_gradient)
+            delta[current_layer] += layer_gradient.T
 
-        return delta
+        return np.array(delta)
 
 
-    def train(self, X, y_labels = None, epochs = 10, learning_rate = 0.01):
+    def train(self, X, y_labels = None, epochs = 10000, learning_rate = 0.001):
         for i in range(epochs):
             if i == 0:
                 self.weights_init()
 
-            a_cache, z_cache, gradient_tape = self.forward_propagation(X)
+            a_cache, z_cache= self.forward_propagation(X)
 
-            cost = self.cost(y_labels, a_cache[-1])
+            print(self.cost(y_labels, a_cache[-1]))
 
-            gradient = self.back_propagation(y_labels, a_cache, z_cache, gradient_tape)
+            gradient = self.back_propagation(y_labels, a_cache, z_cache)
+
+            gradient *= learning_rate / len(X)
+
+            for i, grad in enumerate(gradient):
+                self.weights[i] -= grad
 
 
 if __name__ == '__main__':
     net = NeuralNet()
 
     net.add_layer(DenseLayer(4, 2, activation = "relu"))
-    net.add_layer(DenseLayer(2, 4, activation = "relu"))
-    net.add_layer(DenseLayer(4, 4, activation = "softmax"))
+    net.add_layer(DenseLayer(2, 2, activation = "relu"))
+    net.add_layer(DenseLayer(2, 3, activation = "softmax"))
 
-    X = np.random.randn(4, 1)
+    from sklearn.datasets import load_iris
 
-    net.weights_init()
+    data, target = load_iris(True)
 
-    a_cache, z_cache, gradient_tape = net.forward_propagation(X)
+    one_hot = np.zeros((target.shape[0], 3))
 
-    Y = np.array([1, 0, 0, 0])
+    for index, label in enumerate(one_hot):
+        true_class= target[index]
+        label[true_class] = 1
 
-    #print(a_cache[1])
-    #print(net.softmax_categorical_crossentropy(Y, a_cache[1]))
-
-    #print(net.softmax_categorical_crossentropy(Y, Y_pred, True))
-
-    print(net.back_propagation(Y, a_cache, z_cache, gradient_tape))
-    #print(net.weights[2].shape)
+    net.train(data, one_hot)
