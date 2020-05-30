@@ -1,5 +1,6 @@
 import numpy as np
 from layers import *
+from activations import *
 
 
 class NeuralNet:
@@ -12,26 +13,8 @@ class NeuralNet:
     def add_layer(self, layer: Layer):
         self.layers.append(layer)
 
-    def relu(self, X, derivative = False):
-        if derivative == True:
-            X[X > 0] = 1
-            X[X <= 0] = 0
-
-            return X
-
-        return np.maximum(0, X)
-
-    def sigmoid(self, X, derivative = False):
-        if derivative == True:
-            return self.sigmoid(X) * (1 - self.sigmoid(X))
-
-        return 1 / (1 + np.exp(-X))
-
-    def softmax(self, X):
-        return np.exp(X) / np.sum(np.exp(X), axis = 1, keepdims = True)
-
     def categorical_crossentropy(self, y_labels, output, derivative = False):
-        if derivative == True: # Derivative of softmax crossentropy function with respect to softmax input "X"
+        if derivative == True: # Derivative of softmax crossentropy function with respect to weights
             return output - y_labels
 
         return -np.sum(y_labels * np.log(output))
@@ -47,7 +30,7 @@ class NeuralNet:
         self.biases = np.ones((len(self.layers), 1))
 
     def forward_propagation(self, X):
-        if X.shape[1] != self.layers[0].input_shape:  # Reshaping X to row vector [1, n]
+        if X.shape[1] != self.layers[0].input_shape:  # Reshaping X [x, n] where n are features of data
             X = X.T
 
         z = X
@@ -60,9 +43,9 @@ class NeuralNet:
         for i in range(len(self.layers)):
 
             if i == len(self.layers) - 1:
-                a = self.softmax(np.dot(z, self.weights[i]) + self.biases[i])
+                a = softmax(np.dot(z, self.weights[i]) + self.biases[i])
             else:
-                a = self.relu(np.dot(z, self.weights[i]) + self.biases[i])
+                a = relu(np.dot(z, self.weights[i]) + self.biases[i])
 
             a_cache.append(a)
             z_cache.append(z)
@@ -80,10 +63,13 @@ class NeuralNet:
         output = a_cache[-1]
         output_error = self.cost(y_labels, output, derivative = True)
 
-        delta = []
+        delta_W = []
+        delta_b = np.zeros((self.biases.shape[0], 1))
+
+        delta_b[-1] += np.sum(output_error)
 
         for layer in range(len(self.layers)):
-            delta.append(np.zeros((self.layers[layer].input_shape, self.layers[layer].output)))
+            delta_W.append(np.zeros((self.layers[layer].input_shape, self.layers[layer].output)))
 
         for current_layer in range(len(self.layers) - 1, -1, -1): # Loop for deriving cost function
                                                                   # with respect to weights[current_layer]
@@ -94,17 +80,19 @@ class NeuralNet:
 
             while derived_layer >= current_layer:
                 if derived_layer == current_layer:
+                    delta_b[current_layer] += np.sum(layer_gradient)
+
                     layer_gradient = np.dot(layer_gradient.T, a_cache[current_layer])
+
+                    delta_W[current_layer] += layer_gradient.T
                     break
                 else:
                     layer_gradient = np.dot(layer_gradient, self.weights[derived_layer].T)
-                    layer_gradient *= self.relu(z_cache[derived_layer], derivative = True)
+                    layer_gradient *= relu(z_cache[derived_layer], derivative = True)
 
                     derived_layer -= 1
 
-            delta[current_layer] += layer_gradient.T
-
-        return np.array(delta)
+        return np.array(delta_W), delta_b
 
 
     def train(self, X, y_labels = None, epochs = 1000, learning_rate = 0.01):
@@ -114,13 +102,15 @@ class NeuralNet:
 
             a_cache, z_cache= self.forward_propagation(X)
 
-            gradient = self.back_propagation(y_labels, a_cache, z_cache)
+            dW, db = self.back_propagation(y_labels, a_cache, z_cache)
 
-            gradient *= learning_rate / len(X)
+            dW *= learning_rate / len(X)
+            db /= len(X)
 
-            for i, grad in enumerate(gradient):
+            for i, grad in enumerate(dW):
                 self.weights[i] -= grad
 
+            self.biases -= db
 
 if __name__ == '__main__':
     net = NeuralNet()
@@ -132,7 +122,7 @@ if __name__ == '__main__':
 
     from sklearn.datasets import make_moons
 
-    X_moons, y_moons = make_moons(n_samples = 1000, noise = 0.1)
+    X_moons, y_moons = make_moons(n_samples = 1000, noise = 0.25)
 
     from sklearn.model_selection import train_test_split
 
