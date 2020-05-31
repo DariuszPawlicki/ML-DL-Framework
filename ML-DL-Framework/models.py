@@ -1,6 +1,7 @@
 import numpy as np
 from layers import *
 from activations import *
+from cost_functions import *
 
 
 class NeuralNet:
@@ -9,22 +10,30 @@ class NeuralNet:
         self.layers = []
         self.weights = None
         self.biases = None
+        self.cost = None
+        self.metrics = None
 
     def add_layer(self, layer: Layer):
         self.layers.append(layer)
 
-    def categorical_crossentropy(self, y_labels, output, derivative = False):
-        if derivative == True: # Derivative of softmax crossentropy function with respect to weights
-            return output - y_labels
+    def build_model(self, cost: str, metrics: str, param_init: str):
+        self.weights_init(param_init = param_init)
+        self.cost = cost
+        self.metrics = metrics
 
-        return -np.sum(y_labels * np.log(output))
-
-    def weights_init(self):
+    def weights_init(self, param_init: str):
         weights = []
 
         for i in range(len(self.layers)):
-            xavier = np.sqrt(1/self.layers[i].input_shape)
-            weights.append(np.random.randn(self.layers[i].input_shape, self.layers[i].output) * xavier)
+
+            if param_init == "xavier":
+                method = np.sqrt(1 / self.layers[i].input_shape)
+            elif param_init == "he_normal":
+                method = np.sqrt(2 / (self.layers[i - 1].input_shape + self.layers[i].input_shape))
+            else:
+                method = 1
+
+            weights.append(np.random.randn(self.layers[i].input_shape, self.layers[i].output) * method)
 
         self.weights = np.array(weights)
         self.biases = np.ones((len(self.layers), 1))
@@ -54,14 +63,10 @@ class NeuralNet:
 
         return a_cache, z_cache
 
-    def cost(self, y_labels, output, derivative = False):
-        if derivative == True:
-            return self.categorical_crossentropy(y_labels, output, derivative = True)
-        return self.categorical_crossentropy(y_labels, output)
-
     def back_propagation(self, y_labels, a_cache, z_cache):
         output = a_cache[-1]
-        output_error = self.cost(y_labels, output, derivative = True)
+        output_error = compute_cost(y_labels = y_labels, output = output,
+                                    cost_function = self.cost, derivative = True)
 
         delta_W = []
         delta_b = np.zeros((self.biases.shape[0], 1))
@@ -85,6 +90,7 @@ class NeuralNet:
                     layer_gradient = np.dot(layer_gradient.T, a_cache[current_layer])
 
                     delta_W[current_layer] += layer_gradient.T
+
                     break
                 else:
                     layer_gradient = np.dot(layer_gradient, self.weights[derived_layer].T)
@@ -92,13 +98,14 @@ class NeuralNet:
 
                     derived_layer -= 1
 
-        return np.array(delta_W), delta_b
+        delta_W = np.array(delta_W)
 
+        return delta_W, delta_b
 
-    def train(self, X, y_labels = None, epochs = 1000, learning_rate = 0.01):
+    def train(self, X, y_labels, epochs = 100,
+              learning_rate = 0.01, batch_size = 100):
+
         for i in range(epochs):
-            if i == 0:
-                self.weights_init()
 
             a_cache, z_cache= self.forward_propagation(X)
 
@@ -139,6 +146,7 @@ if __name__ == '__main__':
         true_class = y_train[index]
         label[true_class] = 1
 
+    net.build_model("categorical_crossentropy", "accuracy", "xavier")
     net.train(X_train, one_hot)
 
     y_pred = []

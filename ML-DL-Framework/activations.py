@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def relu(X, derivative = False):
     if derivative == True:
         X[X > 0] = 1
