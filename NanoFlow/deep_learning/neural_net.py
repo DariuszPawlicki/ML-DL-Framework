@@ -1,4 +1,4 @@
-from deep_learning.layers import *
+from deep_learning.layers.layers import *
 from utils.activations import *
 from utils.cost_functions import *
 
