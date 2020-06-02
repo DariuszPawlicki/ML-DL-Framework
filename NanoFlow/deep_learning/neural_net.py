@@ -1,7 +1,6 @@
-import numpy as np
-from layers import *
-from activations import *
-from cost_functions import *
+from deep_learning.layers import *
+from utils.activations import *
+from utils.cost_functions import *
 
 
 class NeuralNet:
