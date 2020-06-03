@@ -1,6 +1,7 @@
 from deep_learning.layers.layers import *
 from utils.activations import *
 from utils.cost_functions import *
+from utils.preprocessing import *
 
 
 class NeuralNet:
@@ -128,7 +129,7 @@ if __name__ == '__main__':
 
     from sklearn.datasets import make_moons
 
-    X_moons, y_moons = make_moons(n_samples = 1000, noise = 0.25)
+    X_moons, y_moons = make_moons(n_samples = 1000, noise = 0.1)
 
     from sklearn.model_selection import train_test_split
 
@@ -139,11 +140,7 @@ if __name__ == '__main__':
     X_train = X_train[shuffler]
     y_train = y_train[shuffler]
 
-    one_hot = np.zeros((y_train.shape[0], 2))
-
-    for index, label in enumerate(one_hot):
-        true_class = y_train[index]
-        label[true_class] = 1
+    one_hot = one_hot_encoder(y_train)
 
     net.build_model("categorical_crossentropy", "accuracy", "xavier")
     net.train(X_train, one_hot)
