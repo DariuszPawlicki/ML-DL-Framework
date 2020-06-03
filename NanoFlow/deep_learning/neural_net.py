@@ -1,7 +1,8 @@
 from deep_learning.layers.layers import *
 from utils.activations import *
 from utils.cost_functions import *
-from utils.preprocessing import *
+from utils.data_processing import *
+from utils.metrics import *
 
 
 class NeuralNet:
@@ -19,7 +20,7 @@ class NeuralNet:
     def build_model(self, cost: str, metrics: str, param_init: str):
         self.weights_init(param_init = param_init)
         self.cost = cost
-        self.metrics = metrics
+        self.metrics = pick_metrics_method(metrics)
 
     def weights_init(self, param_init: str):
         weights = []
@@ -103,7 +104,8 @@ class NeuralNet:
         return delta_W, delta_b
 
     def train(self, X, y_labels, epochs = 100,
-              learning_rate = 0.01, batch_size = 100):
+              learning_rate = 0.01, batch_size = 100,
+              evaluate = True):
 
         for i in range(epochs):
 
@@ -118,6 +120,10 @@ class NeuralNet:
                 self.weights[i] -= grad
 
             self.biases -= db
+
+        if evaluate == True:
+            score = self.metrics(y_labels, one_hot_encoder(probabilities_to_labels(a_cache[-1])))
+            print("Accuracy on train data: ", score)
 
 if __name__ == '__main__':
     net = NeuralNet()
@@ -149,8 +155,11 @@ if __name__ == '__main__':
 
     for X in X_test:
         output, _ = net.forward_propagation(X.reshape(X.shape[0], 1))
-        y_pred.append(np.argmax(output[-1]))
+        y_pred.append(probabilities_to_labels(output[-1]))
 
     y_pred = np.array(y_pred)
 
-    print(((y_test == y_pred).sum() / len(y_pred)) * 100, "%")
+    y_pred = np.squeeze(y_pred).reshape(y_pred.shape[0], 1)
+    y_test = y_test.reshape(y_test.shape[0], 1)
+
+    print("Accuracy on test data: ", net.metrics(y_test, y_pred))
