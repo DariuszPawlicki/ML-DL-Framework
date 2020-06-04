@@ -1,32 +1,41 @@
 import numpy as np
+from utils.decorators import *
 
 
 def one_hot_encoder(target_labels: np.ndarray):
-    target_labels = np.array(target_labels)
 
-    if target_labels.shape[0] == None:
-        target_labels = target_labels.T
+    if not isinstance(target_labels, np.ndarray):
+        target_labels = np.array(target_labels)
 
     classes = np.unique(target_labels, return_counts = True)
 
-    encoded_labels = np.zeros((target_labels.shape[0], len(classes[1])))
+    one_hot_labels = np.zeros((target_labels.shape[0], len(classes[1])))
 
-    for index, label in enumerate(target_labels):
-        if len(classes[1]) == 2 and [0, 1] in classes[0]:
-            encoded_labels[index][label] = 1
-        else:
-            encoded_labels[index][label - 1] = 1
+    new_ids = {}
 
-    return np.array(encoded_labels)
+    for i, cl in enumerate(np.sort(classes[0])):
+        """
+        Changing classes numeration, e.g. if classes in 'target_labels'
+        aren't continuous - [0, 1, 3] - this loop will transform them to [0, 1, 2].
+        If 'target_labels' classes are continuous -  [0, 1, 2] - they'll not change.       
+        """
+        new_ids[cl] = i
+
+    new_encoding = [new_ids[cl] for cl in target_labels]
+
+    for index, label in enumerate(new_encoding):
+        one_hot_labels[index][label] = 1
+
+    return np.array(one_hot_labels)
 
 
 def decode_one_hot(labels: np.ndarray):
 
-    if not labels.shape[1] >= 2:
-        return labels
-
-    if labels.shape[1] != len(np.unique(labels, return_counts = True)[1]):
-        labels = labels.T
+    try:
+        labels.shape[1] >= 2
+    except ValueError:
+        print("Classes count should be greater or equal two,"
+              "for decoding one hot array to classes ids.")
 
     classes = []
 
