@@ -1,11 +1,9 @@
 import numpy as np
-from utils.decorators import *
+from decorators import to_numpy_array
 
 
+@to_numpy_array
 def one_hot_encoder(target_labels: np.ndarray):
-
-    if not isinstance(target_labels, np.ndarray):
-        target_labels = np.array(target_labels)
 
     classes = np.unique(target_labels, return_counts = True)
 
@@ -29,30 +27,27 @@ def one_hot_encoder(target_labels: np.ndarray):
     return np.array(one_hot_labels)
 
 
+@to_numpy_array
 def decode_one_hot(labels: np.ndarray):
 
     try:
-        labels.shape[1] >= 2
-    except ValueError:
-        print("Classes count should be greater or equal two,"
-              "for decoding one hot array to classes ids.")
+        assert labels.shape[1] >= 2
 
-    classes = []
+        classes = []
 
-    for row in labels:
-        classes.append(np.argmax(row))
+        for row in labels:
+            classes.append(np.argmax(row))
 
-    return np.array(classes)
+        return np.array(classes)
+
+    except AssertionError:
+        return labels
 
 
+
+@to_numpy_array
 def data_split(data: np.ndarray, labels: np.ndarray, validation_split = False,
                shuffle_data = True, split_size = 0.2):
-
-    if not isinstance(data, np.ndarray):
-        data = np.array(data)
-
-    if not isinstance(labels, np.ndarray):
-        labels = np.array(labels)
 
     assert len(data) == len(labels), ("Incompatibile shapes, data has length {} "
                         "labels has length {}.".format(len(data), len(labels)))
