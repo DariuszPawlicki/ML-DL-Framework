@@ -84,7 +84,3 @@ def data_split(data: np.ndarray, labels: np.ndarray, validation_split = False,
         return train, test, valid
 
     return train, test
-
-
-def probabilities_to_labels(predictions: np.ndarray):
-    return np.argmax(predictions, axis = 1)

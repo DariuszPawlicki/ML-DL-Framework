@@ -15,12 +15,21 @@ class NeuralNet:
         self.metrics = None
 
     def add_layer(self, layer: Layer):
+        if len(self.layers) == 0 and type(layer).__name__ != InputLayer.__name__:
+            raise TypeError("First layer of the neural network"
+                            " must be the InputLayer type.")
+
         self.layers.append(layer)
+
+        if len(self.layers) > 1:
+            self.layers[-1].input_shape = self.layers[-2].output
+
 
     def build_model(self, cost: str, metrics: str, param_init: str):
         self.weights_init(param_init = param_init)
         self.cost = cost
         self.metrics = pick_metrics_method(metrics)
+
 
     def weights_init(self, param_init: str):
         weights = []
@@ -38,6 +47,7 @@ class NeuralNet:
 
         self.weights = np.array(weights)
         self.biases = np.ones((len(self.layers), 1))
+
 
     def forward_propagation(self, X):
         if X.shape[1] != self.layers[0].input_shape:  # Reshaping X [x, n] where n are features of data
@@ -63,6 +73,7 @@ class NeuralNet:
             z = a
 
         return a_cache, z_cache
+
 
     def back_propagation(self, y_labels, a_cache, z_cache):
         output = a_cache[-1]
@@ -103,6 +114,7 @@ class NeuralNet:
 
         return delta_W, delta_b
 
+
     def train(self, X, y_labels, epochs = 100,
               learning_rate = 0.01, batch_size = 100,
               evaluate = True):
@@ -122,16 +134,21 @@ class NeuralNet:
             self.biases -= db
 
         if evaluate == True:
-            score = self.metrics(y_labels, one_hot_encoder(probabilities_to_labels(a_cache[-1])))
+            score = self.metrics(y_labels, one_hot_encoder(np.argmax(a_cache[-1], axis = 1)))
             print("Accuracy on train data: ", score)
+
+
+    def predict(self, data):
+        a_cache, _ = self.forward_propagation(data)
+        return np.argmax(a_cache[-1], axis = 1)
 
 if __name__ == '__main__':
     net = NeuralNet()
 
-    net.add_layer(DenseLayer(2, 100, activation = "relu"))
-    net.add_layer(DenseLayer(100, 100, activation = "relu"))
-    net.add_layer(DenseLayer(100, 100, activation = "relu"))
-    net.add_layer(DenseLayer(100, 2, activation = "softmax"))
+    net.add_layer(InputLayer(2, 100, activation = "relu"))
+    net.add_layer(DenseLayer(100, activation = "relu"))
+    net.add_layer(DenseLayer(100, activation = "relu"))
+    net.add_layer(DenseLayer(2, activation = "softmax"))
 
     from sklearn.datasets import make_moons
 
@@ -149,15 +166,10 @@ if __name__ == '__main__':
     one_hot = one_hot_encoder(y_train)
 
     net.build_model("categorical_crossentropy", "accuracy", "xavier")
+
     net.train(X_train, one_hot)
 
-    y_pred = []
-
-    for X in X_test:
-        output, _ = net.forward_propagation(X.reshape(X.shape[0], 1))
-        y_pred.append(probabilities_to_labels(output[-1]))
-
-    y_pred = np.array(y_pred)
+    y_pred = net.predict(X_test)
 
     y_pred = np.squeeze(y_pred).reshape(y_pred.shape[0], 1)
     y_test = y_test.reshape(y_test.shape[0], 1)
