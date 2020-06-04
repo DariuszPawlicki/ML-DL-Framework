@@ -121,7 +121,7 @@ class NeuralNet:
 
         for i in range(epochs):
 
-            a_cache, z_cache= self.forward_propagation(X)
+            a_cache, z_cache = self.forward_propagation(X)
 
             dW, db = self.back_propagation(y_labels, a_cache, z_cache)
 
@@ -140,7 +140,8 @@ class NeuralNet:
 
     def predict(self, data):
         a_cache, _ = self.forward_propagation(data)
-        return np.argmax(a_cache[-1], axis = 1)
+        return add_dimension(np.argmax(a_cache[-1], axis = 1))
+
 
 if __name__ == '__main__':
     net = NeuralNet()
@@ -171,7 +172,7 @@ if __name__ == '__main__':
 
     y_pred = net.predict(X_test)
 
-    y_pred = np.squeeze(y_pred).reshape(y_pred.shape[0], 1)
-    y_test = y_test.reshape(y_test.shape[0], 1)
+    y_pred = add_dimension(np.squeeze(y_pred))
+    y_test = add_dimension(y_test)
 
     print("Accuracy on test data: ", net.metrics(y_test, y_pred))

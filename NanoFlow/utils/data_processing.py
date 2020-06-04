@@ -44,7 +44,6 @@ def decode_one_hot(labels: np.ndarray):
         return labels
 
 
-
 @to_numpy_array
 def data_split(data: np.ndarray, labels: np.ndarray, validation_split = False,
                shuffle_data = True, split_size = 0.2):
@@ -84,3 +83,12 @@ def data_split(data: np.ndarray, labels: np.ndarray, validation_split = False,
         return train, test, valid
 
     return train, test
+
+
+def add_dimension(*args):
+    args = list(args)
+
+    for i, arg in enumerate(args):
+        args[i] = arg.reshape(len(arg), 1)
+
+    return args
