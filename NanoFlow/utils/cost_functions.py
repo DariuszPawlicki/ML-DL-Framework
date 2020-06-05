@@ -1,4 +1,5 @@
 import numpy as np
+from decorators import add_second_dim
 
 
 def compute_cost(y_labels, output, cost_function: str, derivative = False):
@@ -36,8 +37,12 @@ def binary_crossentropy(y_labels, output, derivative = False):
         return -np.sum(np.log(output)) / len(output)
 
 
-def mean_squared_error(target, predictions, derivative = False):
+@add_second_dim
+def mean_squared_error(target, predictions, X = None, derivative = False):
     if derivative == True:
-        return -np.sum((target - predictions) * predictions) / len(predictions)
+        dW = np.sum((predictions - target) * X.T) / len(predictions)
+        db = np.sum((predictions - target)) / len(predictions)
 
-    return np.sum((target - predictions) ** 2) / len(predictions)
+        return dW, db
+
+    return np.sum((predictions - target) ** 2) / len(predictions)

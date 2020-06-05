@@ -3,6 +3,7 @@ from utils.activations import *
 from utils.cost_functions import *
 from utils.data_processing import *
 from utils.metrics import *
+from decorators import add_second_dim
 
 
 class NeuralNet:
@@ -138,6 +139,7 @@ class NeuralNet:
             print("Accuracy on train data: ", score)
 
 
+    @add_second_dim
     def predict(self, data):
         a_cache, _ = self.forward_propagation(data)
         return add_dimension(np.argmax(a_cache[-1], axis = 1))

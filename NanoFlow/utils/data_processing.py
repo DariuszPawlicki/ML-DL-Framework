@@ -1,5 +1,5 @@
 import numpy as np
-from decorators import to_numpy_array
+from decorators import to_numpy_array, add_second_dim
 
 
 @to_numpy_array
