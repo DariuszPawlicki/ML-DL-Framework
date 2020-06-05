@@ -1,6 +1,7 @@
 import numpy as np
 from utils.cost_functions import mean_squared_error
 from decorators import to_numpy_array, add_second_dim
+from utils.metrics import pick_metrics_method
 
 
 class LinearRegressor:
@@ -14,7 +15,7 @@ class LinearRegressor:
     @to_numpy_array
     @add_second_dim
     def train(self, X, Y, learning_rate = 0.0001,
-              iterations = 10000, patience = 10,
+              iterations = 1000, patience = 10,
               verbose = True):
 
             patience_counter = patience
@@ -63,12 +64,10 @@ class LinearRegressor:
 
         return np.dot(self.params[0][1:], X) + self.params[0][0]
 
+    @to_numpy_array
+    @add_second_dim
+    def evaluate(self, Y, predictions, metrics: str):
+        metrics_method = pick_metrics_method(metrics)
 
-model = LinearRegressor()
-x = [[1,2],[3,4],[0.5,1],[2,4]]
-y = [10, 20, 30, 40]
-
-model.train(x, y)
-
-
-print(model.predict(x))
+        print(f"\n{metrics[0].upper() + metrics[1:]}: ",
+              metrics_method(Y, predictions))

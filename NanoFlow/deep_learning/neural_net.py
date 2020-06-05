@@ -116,9 +116,11 @@ class NeuralNet:
         return delta_W, delta_b
 
 
+    @to_numpy_array
+    @add_second_dim
     def train(self, X, y_labels, epochs = 100,
               learning_rate = 0.01, batch_size = 100,
-              evaluate = True):
+              verbose = True):
 
         for i in range(epochs):
 
@@ -129,20 +131,24 @@ class NeuralNet:
             dW *= learning_rate / len(X)
             db /= len(X)
 
-            for i, grad in enumerate(dW):
-                self.weights[i] -= grad
+            for layer, grad in enumerate(dW):
+                self.weights[layer] -= grad
 
             self.biases -= db
 
-        if evaluate == True:
-            score = self.metrics(y_labels, one_hot_encoder(np.argmax(a_cache[-1], axis = 1)))
-            print("Accuracy on train data: ", score)
+            if verbose == True:
+                cost = compute_cost(y_labels, a_cache[-1], self.cost)
+                print("Cost in epoch {} :".format(i + 1), cost)
 
 
-    @add_second_dim
     def predict(self, data):
         a_cache, _ = self.forward_propagation(data)
-        return add_dimension(np.argmax(a_cache[-1], axis = 1))
+        return np.argmax(a_cache[-1], axis = 1)
+
+
+    def evaluate(self, y_labels, predictions):
+        print("\nAccuracy: ",
+              self.metrics(y_labels, predictions))
 
 
 if __name__ == '__main__':
@@ -161,11 +167,6 @@ if __name__ == '__main__':
 
     X_train, X_test, y_train, y_test = train_test_split(X_moons, y_moons, test_size = 0.2)
 
-    shuffler = np.random.permutation(len(X_train))
-
-    X_train = X_train[shuffler]
-    y_train = y_train[shuffler]
-
     one_hot = one_hot_encoder(y_train)
 
     net.build_model("categorical_crossentropy", "accuracy", "xavier")
@@ -174,7 +175,4 @@ if __name__ == '__main__':
 
     y_pred = net.predict(X_test)
 
-    y_pred = add_dimension(np.squeeze(y_pred))
-    y_test = add_dimension(y_test)
-
-    print("Accuracy on test data: ", net.metrics(y_test, y_pred))
+    net.evaluate(y_test, y_pred)

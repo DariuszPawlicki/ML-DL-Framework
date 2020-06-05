@@ -40,7 +40,7 @@ def decode_one_hot(labels: np.ndarray):
 
         return np.array(classes)
 
-    except AssertionError:
+    except(AssertionError):
         return labels
 
 
@@ -48,6 +48,10 @@ def decode_one_hot(labels: np.ndarray):
 def data_split(data: np.ndarray, labels: np.ndarray, validation_split = False,
                shuffle_data = True, split_size = 0.2):
 
+    """
+    Returns splitted labels and data in 2 dimensional lists,
+    where first dimension of list is data and second are labels.
+    """
     assert len(data) == len(labels), ("Incompatibile shapes, data has length {} "
                         "labels has length {}.".format(len(data), len(labels)))
 
@@ -83,12 +87,3 @@ def data_split(data: np.ndarray, labels: np.ndarray, validation_split = False,
         return train, test, valid
 
     return train, test
-
-
-def add_dimension(*args):
-    args = list(args)
-
-    for i, arg in enumerate(args):
-        args[i] = arg.reshape(len(arg), 1)
-
-    return args
