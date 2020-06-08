@@ -15,10 +15,11 @@ class NeuralNet:
         self.cost = None
         self.metrics = None
 
+
     def add_layer(self, layer: Layer):
-        if len(self.layers) == 0 and type(layer).__name__ != InputLayer.__name__:
-            raise TypeError("First layer of the neural network"
-                            " must be the InputLayer type.")
+        if len(self.layers) == 0 and layer.__name__ != InputLayer.__name__:
+            raise TypeError("First layer of model"
+                            " must be an 'InputLayer' type.")
 
         self.layers.append(layer)
 
@@ -26,10 +27,14 @@ class NeuralNet:
             self.layers[-1].input_shape = self.layers[-2].output
 
 
-    def build_model(self, cost: str, metrics: str, param_init: str):
-        self.weights_init(param_init = param_init)
-        self.cost = cost
-        self.metrics = pick_metrics_method(metrics)
+    def build_model(self, metrics: str, param_init: str):
+
+            if self.layers[-1].__name__ != OutputLayer.__name__:
+                raise TypeError("Last layer of model must be an"
+                                " 'OutputLayer' type.")
+
+            self.weights_init(param_init = param_init)
+            self.metrics = pick_metrics_method(metrics)
 
 
     def weights_init(self, param_init: str):
@@ -62,11 +67,12 @@ class NeuralNet:
         a_cache.append(X)
 
         for i in range(len(self.layers)):
+            current_layer = self.layers[i]
 
             if i == len(self.layers) - 1:
-                a = softmax(np.dot(z, self.weights[i]) + self.biases[i])
+                a = current_layer.activate(np.dot(z, self.weights[i]) + self.biases[i])
             else:
-                a = relu(np.dot(z, self.weights[i]) + self.biases[i])
+                a = current_layer.activate(np.dot(z, self.weights[i]) + self.biases[i])
 
             a_cache.append(a)
             z_cache.append(z)
@@ -77,9 +83,9 @@ class NeuralNet:
 
 
     def back_propagation(self, y_labels, a_cache, z_cache):
-        output = a_cache[-1]
-        output_error = compute_cost(y_labels = y_labels, output = output,
-                                    cost_function = self.cost, derivative = True)
+        output_layer = self.layers[-1]
+        output_error = output_layer.cost(y_labels, a_cache[-1],
+                                         derivative = True)
 
         delta_W = []
         delta_b = np.zeros((self.biases.shape[0], 1))
@@ -89,25 +95,31 @@ class NeuralNet:
         for layer in range(len(self.layers)):
             delta_W.append(np.zeros((self.layers[layer].input_shape, self.layers[layer].output)))
 
-        for current_layer in range(len(self.layers) - 1, -1, -1): # Loop for deriving cost function
-                                                                  # with respect to weights[current_layer]
+        for i in range(len(self.layers) - 1, -1, -1): # Loop for deriving cost function
+                                                      # with respect to weights[current_layer]
+
+            current_layer = self.layers[i]
+
+            if current_layer.__name__ == BatchNormalization.__name__ or \
+                            current_layer.__name__ == OutputLayer.__name__:
+                continue
 
             layer_gradient = output_error
 
             derived_layer = len(self.layers) - 1
 
-            while derived_layer >= current_layer:
-                if derived_layer == current_layer:
-                    delta_b[current_layer] += np.sum(layer_gradient)
+            while derived_layer >= i:
+                if derived_layer == i:
+                    delta_b[i] += np.sum(layer_gradient)
 
-                    layer_gradient = np.dot(layer_gradient.T, a_cache[current_layer])
+                    layer_gradient = np.dot(layer_gradient.T, a_cache[i])
 
-                    delta_W[current_layer] += layer_gradient.T
+                    delta_W[i] += layer_gradient.T
 
                     break
                 else:
                     layer_gradient = np.dot(layer_gradient, self.weights[derived_layer].T)
-                    layer_gradient *= relu(z_cache[derived_layer], derivative = True)
+                    layer_gradient *= current_layer.activate(z_cache[derived_layer], derivative = True)
 
                     derived_layer -= 1
 
@@ -137,7 +149,7 @@ class NeuralNet:
             self.biases -= db
 
             if verbose == True:
-                cost = compute_cost(y_labels, a_cache[-1], self.cost)
+                cost = self.layers[-1].cost(y_labels, a_cache[-1])
                 print("Cost in epoch {} :".format(i + 1), cost)
 
 
@@ -155,9 +167,11 @@ if __name__ == '__main__':
     net = NeuralNet()
 
     net.add_layer(InputLayer(2, 100, activation = "relu"))
+    net.add_layer(BatchNormalization(100))
     net.add_layer(DenseLayer(100, activation = "relu"))
     net.add_layer(DenseLayer(100, activation = "relu"))
-    net.add_layer(DenseLayer(2, activation = "softmax"))
+    net.add_layer(OutputLayer(2, activation = "softmax",
+                              cost_function = "categorical_crossentropy"))
 
     from sklearn.datasets import make_moons
 
@@ -169,7 +183,7 @@ if __name__ == '__main__':
 
     one_hot = one_hot_encoder(y_train)
 
-    net.build_model("categorical_crossentropy", "accuracy", "xavier")
+    net.build_model("accuracy", "xavier")
 
     net.train(X_train, one_hot)
 

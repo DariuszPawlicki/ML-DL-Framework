@@ -1,6 +1,17 @@
 import numpy as np
 
 
+def pick_activation(activation: str):
+    if activation == "relu":
+        return relu
+    elif activation == "sigmoid":
+        return sigmoid
+    elif activation == "softmax":
+        return softmax
+    elif activation == "normalization":
+        return normalization
+
+
 def relu(X, derivative = False):
     if derivative == True:
         X[X > 0] = 1
@@ -20,3 +31,10 @@ def sigmoid(X, derivative = False):
 
 def softmax(X):
     return np.exp(X) / np.sum(np.exp(X), axis = 1, keepdims = True)
+
+
+def normalization(X):
+    mean = np.mean(X)
+    variance = np.var(X)
+
+    return (X - mean) / variance
