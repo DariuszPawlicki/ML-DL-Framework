@@ -1,8 +1,8 @@
-from deep_learning.layers.layers import *
 from utils.data_processing import *
 from utils.metrics import *
 from decorators import add_second_dim
-from numpy import sqrt, random, ones, dot, zeros, sum, array, argmax
+from numpy import sqrt, random, dot, zeros, sum, array as np_array, argmax
+from deep_learning.layers import *
 
 
 class NeuralNet:
@@ -13,7 +13,6 @@ class NeuralNet:
         self.biases = None
         self.cost = None
         self.metrics = None
-        self.trainable_layers = None
 
 
     def add_layer(self, layer: Layer):
@@ -33,7 +32,6 @@ class NeuralNet:
                 raise TypeError("Last layer of model must be an"
                                 " 'OutputLayer' type.")
 
-            self.trainable_layers = sum([1 for layer in self.layers if layer.trainable])
             self.weights_init(param_init = param_init)
             self.metrics = pick_metrics_method(metrics)
 
@@ -61,8 +59,8 @@ class NeuralNet:
                 weights.append(0)
                 biases.append(float(0))
 
-        self.weights = array(weights)
-        self.biases = array(biases)
+        self.weights = np_array(weights)
+        self.biases = np_array(biases)
 
     def forward_propagation(self, X):
         if X.shape[1] != self.layers[0].input_shape:  # Reshaping X [x, n] where n are features of data
@@ -95,11 +93,8 @@ class NeuralNet:
         output_layer = self.layers[-1]
         output_error = output_layer.cost(y_labels, a_cache[-1],
                                          derivative = True)
-
         delta_W = []
         delta_b = []
-
-
 
         for current_layer in self.layers:
             if current_layer.trainable == True:
@@ -112,8 +107,11 @@ class NeuralNet:
 
         delta_b[-1] += sum(output_error)
 
-        for cur_layer_index, current_layer in reversed(list(enumerate(self.layers))): # Loop for deriving cost function
-                                                                                      # with respect to weights[current_layer]
+        for cur_layer_index, current_layer in reversed(list(enumerate(self.layers))):
+            """
+             Loop for deriving cost function
+             with respect to 'current_layer'.
+            """
 
             if current_layer.trainable == False or \
                     current_layer.__name__ == OutputLayer.__name__:
@@ -140,8 +138,8 @@ class NeuralNet:
                     layer_gradient = dot(layer_gradient, self.weights[derived_index].T)
                     layer_gradient *= current_layer.activate(z_cache[derived_index], derivative = True)
 
-        delta_W = array(delta_W)
-        delta_b = array(delta_b)
+        delta_W = np_array(delta_W)
+        delta_b = np_array(delta_b)
 
         return delta_W, delta_b
 
@@ -167,8 +165,7 @@ class NeuralNet:
             self.weights -= dW
             self.biases -= db
 
-            if verbose == True:
-                cost = self.layers[-1].cost(y_labels, a_cache[-1])
+            cost = self.layers[-1].cost(y_labels, a_cache[-1])
 
             if cost >= previous_cost:
                 patience_counter -= 1
@@ -179,15 +176,14 @@ class NeuralNet:
                             "feature engineering.\n")
 
                     print("Cost: ", cost)
-
                     break
-
             else:
                 patience_counter = patience
 
             previous_cost = cost
 
-            print("Cost in epoch {} :".format(epoch + 1), cost)
+            if verbose == True:
+                print("Cost in epoch {} :".format(epoch + 1), cost)
 
 
     def predict(self, data):
