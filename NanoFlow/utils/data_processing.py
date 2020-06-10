@@ -1,17 +1,17 @@
-import numpy as np
+from numpy import unique, zeros, sort, ndarray, argmax, array, random
 from decorators import to_numpy_array, add_second_dim
 
 
 @to_numpy_array
-def one_hot_encoder(target_labels: np.ndarray):
+def one_hot_encoder(target_labels: ndarray):
 
-    classes = np.unique(target_labels, return_counts = True)
+    classes = unique(target_labels, return_counts = True)
 
-    one_hot_labels = np.zeros((target_labels.shape[0], len(classes[1])))
+    one_hot_labels = zeros((target_labels.shape[0], len(classes[1])))
 
     new_ids = {}
 
-    for i, cl in enumerate(np.sort(classes[0])):
+    for i, cl in enumerate(sort(classes[0])):
         """
         Changing classes numeration, e.g. if classes in 'target_labels'
         aren't continuous - [0, 1, 3] - this loop will transform them to [0, 1, 2].
@@ -24,11 +24,11 @@ def one_hot_encoder(target_labels: np.ndarray):
     for index, label in enumerate(new_encoding):
         one_hot_labels[index][label] = 1
 
-    return np.array(one_hot_labels)
+    return array(one_hot_labels)
 
 
 @to_numpy_array
-def decode_one_hot(labels: np.ndarray):
+def decode_one_hot(labels: ndarray):
 
     try:
         assert labels.shape[1] >= 2
@@ -36,16 +36,16 @@ def decode_one_hot(labels: np.ndarray):
         classes = []
 
         for row in labels:
-            classes.append(np.argmax(row))
+            classes.append(argmax(row))
 
-        return np.array(classes)
+        return array(classes)
 
     except(AssertionError):
         return labels
 
 
 @to_numpy_array
-def data_split(data: np.ndarray, labels: np.ndarray, validation_split = False,
+def data_split(data: ndarray, labels: ndarray, validation_split = False,
                shuffle_data = True, split_size = 0.2):
 
     """
@@ -56,7 +56,7 @@ def data_split(data: np.ndarray, labels: np.ndarray, validation_split = False,
                         "labels has length {}.".format(len(data), len(labels)))
 
     if shuffle_data == True:
-        shuffler = np.random.permutation(len(labels))
+        shuffler = random.permutation(len(labels))
 
         data = data[shuffler]
         labels = labels[shuffler]

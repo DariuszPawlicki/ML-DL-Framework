@@ -1,9 +1,8 @@
 from deep_learning.layers.layers import *
-from utils.activations import *
-from utils.cost_functions import *
 from utils.data_processing import *
 from utils.metrics import *
 from decorators import add_second_dim
+from numpy import sqrt, random, ones, dot, zeros, sum, array, argmax
 
 
 class NeuralNet:
@@ -14,6 +13,7 @@ class NeuralNet:
         self.biases = None
         self.cost = None
         self.metrics = None
+        self.trainable_layers = None
 
 
     def add_layer(self, layer: Layer):
@@ -33,6 +33,7 @@ class NeuralNet:
                 raise TypeError("Last layer of model must be an"
                                 " 'OutputLayer' type.")
 
+            self.trainable_layers = sum([1 for layer in self.layers if layer.trainable])
             self.weights_init(param_init = param_init)
             self.metrics = pick_metrics_method(metrics)
 
@@ -40,19 +41,23 @@ class NeuralNet:
     def weights_init(self, param_init: str):
         weights = []
 
-        for i in range(len(self.layers)):
+        for cur_layer_index, current_layer in enumerate(self.layers):
 
-            if param_init == "xavier":
-                method = np.sqrt(1 / self.layers[i].input_shape)
-            elif param_init == "he_normal":
-                method = np.sqrt(2 / (self.layers[i - 1].input_shape + self.layers[i].input_shape))
-            else:
-                method = 1
+            if current_layer.trainable == True:
 
-            weights.append(np.random.randn(self.layers[i].input_shape, self.layers[i].output) * method)
+                if param_init == "xavier":
+                    method = sqrt(1 / current_layer.input_shape)
+                elif param_init == "he_normal":
+                    method = sqrt(2 / (self.layers[cur_layer_index - 1].input_shape +
+                                       current_layer.input_shape))
+                else:
+                    method = 1
 
-        self.weights = np.array(weights)
-        self.biases = np.ones((len(self.layers), 1))
+                weights.append(random.randn(current_layer.input_shape, current_layer.output) * method)
+
+        self.weights = array(weights)
+
+        self.biases = ones((self.trainable_layers, 1))
 
 
     def forward_propagation(self, X):
@@ -61,18 +66,22 @@ class NeuralNet:
 
         z = X
 
+        non_trainable_activated = 0
+
         z_cache = []
         a_cache = []
 
         a_cache.append(X)
 
-        for i in range(len(self.layers)):
-            current_layer = self.layers[i]
+        for cur_layer_index, current_layer in enumerate(self.layers):
+            cur_layer_index -= non_trainable_activated
 
-            if i == len(self.layers) - 1:
-                a = current_layer.activate(np.dot(z, self.weights[i]) + self.biases[i])
+            if current_layer.trainable:
+                a = current_layer.activate(dot(z, self.weights[cur_layer_index]) +
+                                           self.biases[cur_layer_index])
             else:
-                a = current_layer.activate(np.dot(z, self.weights[i]) + self.biases[i])
+                a = current_layer.activate(z)
+                non_trainable_activated += 1
 
             a_cache.append(a)
             z_cache.append(z)
@@ -88,53 +97,58 @@ class NeuralNet:
                                          derivative = True)
 
         delta_W = []
-        delta_b = np.zeros((self.biases.shape[0], 1))
+        delta_b = zeros((self.biases.shape[0], 1))
 
-        delta_b[-1] += np.sum(output_error)
+        delta_b[-1] += sum(output_error)
 
-        for layer in range(len(self.layers)):
-            delta_W.append(np.zeros((self.layers[layer].input_shape, self.layers[layer].output)))
+        for current_layer in self.layers:
+            if current_layer.trainable == True:
+                delta_W.append(zeros((current_layer.input_shape,
+                                      current_layer.output)))
 
-        for i in range(len(self.layers) - 1, -1, -1): # Loop for deriving cost function
-                                                      # with respect to weights[current_layer]
+        for cur_layer_index, current_layer in reversed(list(enumerate(self.layers))): # Loop for deriving cost function
+                                                                                      # with respect to weights[current_layer]
 
-            current_layer = self.layers[i]
+            if current_layer.trainable == False or \
+                    current_layer.__name__ == OutputLayer.__name__:
 
-            if current_layer.__name__ == BatchNormalization.__name__ or \
-                            current_layer.__name__ == OutputLayer.__name__:
                 continue
 
             layer_gradient = output_error
 
-            derived_layer = len(self.layers) - 1
 
-            while derived_layer >= i:
-                if derived_layer == i:
-                    delta_b[i] += np.sum(layer_gradient)
+            for derived_index, derived_layer in reversed(list(enumerate(self.layers))):
+                if derived_layer.trainable == False:
+                    continue
 
-                    layer_gradient = np.dot(layer_gradient.T, a_cache[i])
+                if derived_index == cur_layer_index:
+                    delta_b[cur_layer_index] += sum(layer_gradient)
 
-                    delta_W[i] += layer_gradient.T
+                    layer_gradient = dot(layer_gradient.T, a_cache[cur_layer_index])
+
+                    delta_W[cur_layer_index] += layer_gradient.T
 
                     break
+
                 else:
-                    layer_gradient = np.dot(layer_gradient, self.weights[derived_layer].T)
-                    layer_gradient *= current_layer.activate(z_cache[derived_layer], derivative = True)
+                    layer_gradient = dot(layer_gradient, self.weights[derived_index].T)
+                    layer_gradient *= current_layer.activate(z_cache[derived_index], derivative = True)
 
-                    derived_layer -= 1
-
-        delta_W = np.array(delta_W)
+        delta_W = array(delta_W)
 
         return delta_W, delta_b
 
 
     @to_numpy_array
     @add_second_dim
-    def train(self, X, y_labels, epochs = 100,
+    def train(self, X, y_labels, epochs = 10000,
               learning_rate = 0.01, batch_size = 100,
-              verbose = True):
+              verbose = True, patience = 10):
 
-        for i in range(epochs):
+        previous_cost = 0
+        patience_counter = patience
+
+        for epoch in range(epochs):
 
             a_cache, z_cache = self.forward_propagation(X)
 
@@ -144,18 +158,37 @@ class NeuralNet:
             db /= len(X)
 
             for layer, grad in enumerate(dW):
-                self.weights[layer] -= grad
+                if self.layers[layer].trainable == True:
+                    self.weights[layer] -= grad
 
             self.biases -= db
 
             if verbose == True:
                 cost = self.layers[-1].cost(y_labels, a_cache[-1])
-                print("Cost in epoch {} :".format(i + 1), cost)
+
+                if cost >= previous_cost:
+                    patience_counter -= 1
+
+                    if patience_counter == 0:
+                        print("Gradient descent is on plateau/diverging,"
+                              "\ntry different learning rate or "
+                              "feature engineering.\n")
+
+                        print("Cost: ", cost)
+
+                        break
+
+                else:
+                    patience_counter = patience
+
+                previous_cost = cost
+
+                print("Cost in epoch {} :".format(epoch + 1), cost)
 
 
     def predict(self, data):
         a_cache, _ = self.forward_propagation(data)
-        return np.argmax(a_cache[-1], axis = 1)
+        return argmax(a_cache[-1], axis = 1)
 
 
     def evaluate(self, y_labels, predictions):
@@ -166,10 +199,10 @@ class NeuralNet:
 if __name__ == '__main__':
     net = NeuralNet()
 
-    net.add_layer(InputLayer(2, 100, activation = "relu"))
-    net.add_layer(BatchNormalization(100))
-    net.add_layer(DenseLayer(100, activation = "relu"))
-    net.add_layer(DenseLayer(100, activation = "relu"))
+    net.add_layer(InputLayer(2, 1000, activation = "relu"))
+    net.add_layer(Dropout(1000, rate = 0.2))
+    net.add_layer(DenseLayer(500, activation = "relu"))
+    net.add_layer(DenseLayer(900, activation = "relu"))
     net.add_layer(OutputLayer(2, activation = "softmax",
                               cost_function = "categorical_crossentropy"))
 

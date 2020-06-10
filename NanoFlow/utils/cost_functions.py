@@ -1,4 +1,4 @@
-import numpy as np
+from numpy import sum, log
 from decorators import add_second_dim
 
 
@@ -24,7 +24,7 @@ def categorical_crossentropy(y_labels, output, derivative = False):
     if derivative == True:  # Derivative of softmax crossentropy function with respect to weights
         return output - y_labels
 
-    return -np.sum(y_labels * np.log(output)) / len(output)
+    return -sum(y_labels * log(output)) / len(output)
 
 
 def binary_crossentropy(y_labels, output, derivative = False):
@@ -32,17 +32,17 @@ def binary_crossentropy(y_labels, output, derivative = False):
         return output - y_labels
 
     if y_labels[0] == 1:
-        return -np.sum(np.log(1 - output)) / len(output)
+        return -sum(log(1 - output)) / len(output)
     elif y_labels[1] == 1:
-        return -np.sum(np.log(output)) / len(output)
+        return -sum(log(output)) / len(output)
 
 
 @add_second_dim
 def mean_squared_error(target, predictions, X = None, derivative = False):
     if derivative == True:
-        dW = np.sum((predictions - target) * X.T) / len(predictions)
-        db = np.sum((predictions - target)) / len(predictions)
+        dW = sum((predictions - target) * X.T) / len(predictions)
+        db = sum((predictions - target)) / len(predictions)
 
         return dW, db
 
-    return np.sum((predictions - target) ** 2) / len(predictions)
+    return sum((predictions - target) ** 2) / len(predictions)

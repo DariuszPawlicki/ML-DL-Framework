@@ -1,4 +1,4 @@
-import numpy as np
+from numpy import dot, random
 from utils.cost_functions import mean_squared_error
 from decorators import to_numpy_array, add_second_dim
 from utils.metrics import pick_metrics_method
@@ -37,7 +37,7 @@ class LinearRegressor(LinearModel):
         super().__init__()
 
     def weights_init(self):
-        self.params = np.random.randn(1, self.features + 1)
+        self.params = random.randn(1, self.features + 1)
 
     @to_numpy_array
     @add_second_dim
@@ -89,7 +89,7 @@ class LinearRegressor(LinearModel):
         if X.shape[0] != self.features:
             X = X.T
 
-        return np.dot(self.params[0][1:], X) + self.params[0][0]
+        return dot(self.params[0][1:], X) + self.params[0][0]
 
     @to_numpy_array
     @add_second_dim
@@ -108,7 +108,7 @@ class LogisticRegressor(LinearModel):
 
 
     def weights_init(self):
-        self.params = np.random.randn(1, self.features + 1)
+        self.params = random.randn(1, self.features + 1)
 
     @to_numpy_array
     @add_second_dim

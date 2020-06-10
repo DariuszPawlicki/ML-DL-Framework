@@ -1,4 +1,4 @@
-import numpy as np
+from numpy import ndarray, array
 
 
 def to_numpy_array(func):
@@ -7,16 +7,16 @@ def to_numpy_array(func):
         args = list(args)
 
         for i, arg in enumerate(args):
-            if not (isinstance(arg, np.ndarray)) and \
+            if not (isinstance(arg, ndarray)) and \
                     (isinstance(arg, list) or isinstance(arg, tuple)):
 
-                args[i] = np.array(arg)
+                args[i] = array(arg)
 
         for key, kwarg in kwargs.items():
-            if not isinstance(kwarg, np.ndarray) and \
+            if not isinstance(kwarg, ndarray) and \
                     (isinstance(kwarg, list) or isinstance(kwarg, tuple)):
 
-                kwargs[key] = np.array(kwarg)
+                kwargs[key] = array(kwarg)
 
         return func(*args, **kwargs)
 
@@ -28,17 +28,17 @@ def add_second_dim(func):
         args = list(args)
 
         for i, arg in enumerate(args):
-            if isinstance(arg, np.ndarray):
+            if isinstance(arg, ndarray):
 
                 try:
                     assert arg.shape[1]
                 except(IndexError):
                     arg = arg.reshape(arg.shape[0], 1)
 
-                args[i] = np.array(arg)
+                args[i] = array(arg)
 
         for key, kwarg in kwargs.items():
-            if isinstance(kwarg, np.ndarray):
+            if isinstance(kwarg, ndarray):
                 try:
                     assert kwarg.shape[1]
                 except(IndexError):
