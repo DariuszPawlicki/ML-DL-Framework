@@ -40,6 +40,7 @@ class NeuralNet:
 
     def weights_init(self, param_init: str):
         weights = []
+        biases = []
 
         for cur_layer_index, current_layer in enumerate(self.layers):
 
@@ -54,11 +55,14 @@ class NeuralNet:
                     method = 1
 
                 weights.append(random.randn(current_layer.input_shape, current_layer.output) * method)
+                biases.append(float(1))
+
+            else:
+                weights.append(0)
+                biases.append(float(0))
 
         self.weights = array(weights)
-
-        self.biases = ones((self.trainable_layers, 1))
-
+        self.biases = array(biases)
 
     def forward_propagation(self, X):
         if X.shape[1] != self.layers[0].input_shape:  # Reshaping X [x, n] where n are features of data
@@ -66,22 +70,18 @@ class NeuralNet:
 
         z = X
 
-        non_trainable_activated = 0
-
         z_cache = []
         a_cache = []
 
         a_cache.append(X)
 
         for cur_layer_index, current_layer in enumerate(self.layers):
-            cur_layer_index -= non_trainable_activated
 
             if current_layer.trainable:
                 a = current_layer.activate(dot(z, self.weights[cur_layer_index]) +
                                            self.biases[cur_layer_index])
             else:
                 a = current_layer.activate(z)
-                non_trainable_activated += 1
 
             a_cache.append(a)
             z_cache.append(z)
@@ -97,14 +97,20 @@ class NeuralNet:
                                          derivative = True)
 
         delta_W = []
-        delta_b = zeros((self.biases.shape[0], 1))
+        delta_b = []
 
-        delta_b[-1] += sum(output_error)
+
 
         for current_layer in self.layers:
             if current_layer.trainable == True:
                 delta_W.append(zeros((current_layer.input_shape,
                                       current_layer.output)))
+                delta_b.append(0)
+            else:
+                delta_W.append(0)
+                delta_b.append(0)
+
+        delta_b[-1] += sum(output_error)
 
         for cur_layer_index, current_layer in reversed(list(enumerate(self.layers))): # Loop for deriving cost function
                                                                                       # with respect to weights[current_layer]
@@ -135,13 +141,14 @@ class NeuralNet:
                     layer_gradient *= current_layer.activate(z_cache[derived_index], derivative = True)
 
         delta_W = array(delta_W)
+        delta_b = array(delta_b)
 
         return delta_W, delta_b
 
 
     @to_numpy_array
     @add_second_dim
-    def train(self, X, y_labels, epochs = 10000,
+    def train(self, X, y_labels, epochs = 100,
               learning_rate = 0.01, batch_size = 100,
               verbose = True, patience = 10):
 
@@ -157,33 +164,30 @@ class NeuralNet:
             dW *= learning_rate / len(X)
             db /= len(X)
 
-            for layer, grad in enumerate(dW):
-                if self.layers[layer].trainable == True:
-                    self.weights[layer] -= grad
-
+            self.weights -= dW
             self.biases -= db
 
             if verbose == True:
                 cost = self.layers[-1].cost(y_labels, a_cache[-1])
 
-                if cost >= previous_cost:
-                    patience_counter -= 1
+            if cost >= previous_cost:
+                patience_counter -= 1
 
-                    if patience_counter == 0:
-                        print("Gradient descent is on plateau/diverging,"
-                              "\ntry different learning rate or "
-                              "feature engineering.\n")
+                if patience_counter == 0:
+                    print("Gradient descent is on plateau/diverging,"
+                            "\ntry different learning rate or "
+                            "feature engineering.\n")
 
-                        print("Cost: ", cost)
+                    print("Cost: ", cost)
 
-                        break
+                    break
 
-                else:
-                    patience_counter = patience
+            else:
+                patience_counter = patience
 
-                previous_cost = cost
+            previous_cost = cost
 
-                print("Cost in epoch {} :".format(epoch + 1), cost)
+            print("Cost in epoch {} :".format(epoch + 1), cost)
 
 
     def predict(self, data):
@@ -199,10 +203,11 @@ class NeuralNet:
 if __name__ == '__main__':
     net = NeuralNet()
 
-    net.add_layer(InputLayer(2, 1000, activation = "relu"))
-    net.add_layer(Dropout(1000, rate = 0.2))
-    net.add_layer(DenseLayer(500, activation = "relu"))
-    net.add_layer(DenseLayer(900, activation = "relu"))
+    net.add_layer(InputLayer(2, 100, activation = "relu"))
+    net.add_layer(Dropout(100, rate = 0.2))
+    net.add_layer(DenseLayer(100, activation = "relu"))
+    net.add_layer(BatchNormalization(100))
+    net.add_layer(DenseLayer(100, activation = "relu"))
     net.add_layer(OutputLayer(2, activation = "softmax",
                               cost_function = "categorical_crossentropy"))
 
