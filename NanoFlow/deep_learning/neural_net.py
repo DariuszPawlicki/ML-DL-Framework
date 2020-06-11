@@ -1,6 +1,6 @@
 from utils.data_processing import *
 from utils.metrics import *
-from decorators import add_second_dim
+from decorators import add_second_dim, to_numpy_array
 from numpy import sqrt, random, dot, zeros, sum, array as np_array, argmax
 from deep_learning.layers import *
 
