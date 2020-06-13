@@ -3,6 +3,7 @@ from utils.metrics import *
 from decorators import add_second_dim, to_numpy_array
 from numpy import sqrt, random, dot, zeros, sum, array as np_array, argmax
 from deep_learning.layers import *
+from utils.regularizers import Regularizers
 
 
 class NeuralNet:
@@ -11,7 +12,6 @@ class NeuralNet:
         self.layers = []
         self.weights = None
         self.biases = None
-        self.cost = None
         self.metrics = None
 
 
@@ -66,51 +66,61 @@ class NeuralNet:
         if X.shape[1] != self.layers[0].input_shape:  # Reshaping X [x, n] where n are features of data
             X = X.T
 
-        z = X
+        prev_activations = X # Previous layer activation
 
-        z_cache = []
-        a_cache = []
+        dot_product = None  # Dot product of previous layer
+                           #  activations and current layer weights
 
-        a_cache.append(X)
+        activations_cache = []
+        dot_prod_cache = []
+
+        activations_cache.append(X)
 
         for cur_layer_index, current_layer in enumerate(self.layers):
 
             if current_layer.trainable:
-                a = current_layer.activate(dot(z, self.weights[cur_layer_index]) +
-                                           self.biases[cur_layer_index])
-            else:
-                a = current_layer.activate(z)
+                dot_product = dot(prev_activations, self.weights[cur_layer_index]) + \
+                              self.biases[cur_layer_index]
 
-            a_cache.append(a)
-            z_cache.append(z)
+            prev_activations = current_layer.activate(dot_product)
 
-            z = a
+            activations_cache.append(prev_activations)
+            dot_prod_cache.append(dot_product)
 
-        return a_cache, z_cache
+        return activations_cache, dot_prod_cache
 
 
-    def back_propagation(self, y_labels, a_cache, z_cache):
+    def back_propagation(self, y_labels, activations_cache, dot_prod_cache):
         output_layer = self.layers[-1]
-        output_error = output_layer.cost(y_labels, a_cache[-1],
-                                         derivative = True)
+
+        cost_func_derivative = output_layer.cost(y_labels, activations_cache[-1],
+                                                 derivative = True)
+        """
+        Cost function derivative, w.r.t to outputs.
+        """
+        output_weights_gradient = dot(activations_cache[-2].T,
+                                      cost_func_derivative)
+        """
+        Cost function derivative, w.r.t to output layer weights.
+        """
+
         delta_W = []
-        delta_b = []
+        delta_b = zeros((len(self.layers), 1))
 
         for current_layer in self.layers:
             if current_layer.trainable == True:
                 delta_W.append(zeros((current_layer.input_shape,
                                       current_layer.output)))
-                delta_b.append(0)
             else:
                 delta_W.append(0)
-                delta_b.append(0)
 
-        delta_b[-1] += sum(output_error)
+        delta_W[-1] += output_weights_gradient
+        delta_b[-1] += sum(cost_func_derivative)
 
         for cur_layer_index, current_layer in reversed(list(enumerate(self.layers))):
             """
              Loop for deriving cost function
-             with respect to 'current_layer'.
+             with respect to 'current_layer' weights.
             """
 
             if current_layer.trainable == False or \
@@ -118,8 +128,7 @@ class NeuralNet:
 
                 continue
 
-            layer_gradient = output_error
-
+            layer_gradient = cost_func_derivative
 
             for derived_index, derived_layer in reversed(list(enumerate(self.layers))):
                 if derived_layer.trainable == False:
@@ -128,16 +137,26 @@ class NeuralNet:
                 if derived_index == cur_layer_index:
                     delta_b[cur_layer_index] += sum(layer_gradient)
 
-                    layer_gradient = dot(layer_gradient.T, a_cache[cur_layer_index])
+                    layer_gradient = dot(layer_gradient.T, activations_cache[cur_layer_index])
 
                     delta_W[cur_layer_index] += layer_gradient.T
+
+                    if current_layer.regularization != "":
+                        reg_func = Regularizers.reg_methods[current_layer.regularization]
+                        reg = reg_func.__func__(self.weights[cur_layer_index],
+                                                current_layer.reg_strength)
+
+                        delta_W[cur_layer_index] += reg
 
                     break
 
                 else:
-                    layer_gradient = dot(layer_gradient, self.weights[derived_index].T)
-                    layer_gradient *= current_layer.activate(z_cache[derived_index], derivative = True)
+                    layer_gradient = dot(self.weights[derived_index], layer_gradient.T)
 
+                    if derived_layer.__name__ != OutputLayer.__name__:
+                        layer_gradient = dot(derived_layer.activate(dot_prod_cache[derived_index - 1],
+                                                                    derivative = True),
+                                                                    layer_gradient)
         delta_W = np_array(delta_W)
         delta_b = np_array(delta_b)
 
@@ -155,17 +174,17 @@ class NeuralNet:
 
         for epoch in range(epochs):
 
-            a_cache, z_cache = self.forward_propagation(X)
+            activations_cache, dot_prod_cache = self.forward_propagation(X)
 
-            dW, db = self.back_propagation(y_labels, a_cache, z_cache)
+            dW, db = self.back_propagation(y_labels, activations_cache, dot_prod_cache)
 
             dW *= learning_rate / len(X)
             db /= len(X)
 
             self.weights -= dW
-            self.biases -= db
+            self.biases -= db.squeeze()
 
-            cost = self.layers[-1].cost(y_labels, a_cache[-1])
+            cost = self.layers[-1].cost(y_labels, activations_cache[-1])
 
             if cost >= previous_cost:
                 patience_counter -= 1
@@ -199,13 +218,10 @@ class NeuralNet:
 if __name__ == '__main__':
     net = NeuralNet()
 
-    net.add_layer(InputLayer(2, 100, activation = "relu"))
-    net.add_layer(Dropout(100, rate = 0.2))
-    net.add_layer(DenseLayer(100, activation = "relu"))
-    net.add_layer(BatchNormalization(100))
-    net.add_layer(DenseLayer(100, activation = "relu"))
-    net.add_layer(OutputLayer(2, activation = "softmax",
-                              cost_function = "categorical_crossentropy"))
+    net.add_layer(InputLayer(2, 5, activation = "relu"))
+    net.add_layer(DenseLayer(3, activation = "relu"))
+    net.add_layer(OutputLayer(1, activation = "sigmoid",
+                              cost_function = "binary_crossentropy"))
 
     from sklearn.datasets import make_moons
 
@@ -215,11 +231,11 @@ if __name__ == '__main__':
 
     X_train, X_test, y_train, y_test = train_test_split(X_moons, y_moons, test_size = 0.2)
 
-    one_hot = one_hot_encoder(y_train)
+    one_hot = y_train
 
     net.build_model("accuracy", "xavier")
 
-    net.train(X_train, one_hot)
+    net.train(X_train[:50], one_hot[:50])
 
     y_pred = net.predict(X_test)
 

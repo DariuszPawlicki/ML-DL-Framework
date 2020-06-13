@@ -17,7 +17,7 @@ class LinearModel(ABC):
         pass
 
     @abstractmethod
-    def train(self, X, Y, learning_rate = 0.0001,
+    def train(self, X, Y, learning_rate = 0.01,
               iterations = 1000, patience = 10,
               verbose = True):
         pass

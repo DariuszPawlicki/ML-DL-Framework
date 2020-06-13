@@ -1,4 +1,4 @@
-from numpy import sum, log, array as np_array
+from numpy import sum, log, array as np_array, dot
 from decorators import add_second_dim
 
 
@@ -29,7 +29,7 @@ def categorical_crossentropy(y_labels, output, derivative = False):
 @add_second_dim
 def binary_crossentropy(y_labels, output, derivative = False):
     if derivative == True:
-        return output - y_labels
+        return (output - y_labels)
 
     cost = 0
 
@@ -42,11 +42,11 @@ def binary_crossentropy(y_labels, output, derivative = False):
     return cost / len(output)
 
 @add_second_dim
-def mean_squared_error(target, predictions, X = None, derivative = False):
+def mean_squared_error(y_labels, output, X = None, derivative = False):
     if derivative == True:
-        dW = sum((predictions - target) * X.T) / len(predictions)
-        db = sum((predictions - target)) / len(predictions)
+        dW = sum((output - y_labels) * X.T) / len(output)
+        db = sum((output - y_labels)) / len(output)
 
         return dW, db
 
-    return sum((predictions - target) ** 2) / len(predictions)
+    return sum((output - y_labels) ** 2) / len(output)
