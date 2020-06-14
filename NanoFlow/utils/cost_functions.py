@@ -21,7 +21,7 @@ def compute_cost(y_labels, output, cost_function: str, derivative = False):
 
 @add_second_dim
 def categorical_crossentropy(y_labels, output, derivative = False):
-    if derivative == True:  # Derivative of softmax crossentropy function with respect to weights
+    if derivative == True:
         return output - y_labels
 
     return -sum(y_labels * log(output)) / len(output)

@@ -125,16 +125,24 @@ class NeuralNet:
 
             if current_layer.trainable == False or \
                     current_layer.__name__ == OutputLayer.__name__:
-
+                """
+                Layers like batch normalization or dropout are not differentiable.
+                Output layer isn't also derived here, because it was derived earlier.
+                """
                 continue
 
             layer_gradient = cost_func_derivative
 
-            for derived_index, derived_layer in reversed(list(enumerate(self.layers))):
+            for derived_layer_index, derived_layer in reversed(list(enumerate(self.layers))):
                 if derived_layer.trainable == False:
                     continue
 
-                if derived_index == cur_layer_index:
+                if derived_layer.__name__ != OutputLayer.__name__:
+                    activ_func_derivative = derived_layer.activate(dot_prod_cache[derived_layer_index],
+                                                                   derivative=True)
+                    layer_gradient *= activ_func_derivative
+
+                if derived_layer_index == cur_layer_index:
                     delta_b[cur_layer_index] += sum(layer_gradient)
 
                     layer_gradient = dot(layer_gradient.T, activations_cache[cur_layer_index])
@@ -151,12 +159,8 @@ class NeuralNet:
                     break
 
                 else:
-                    layer_gradient = dot(self.weights[derived_index], layer_gradient.T)
+                    layer_gradient = dot(layer_gradient, self.weights[derived_layer_index].T)
 
-                    if derived_layer.__name__ != OutputLayer.__name__:
-                        layer_gradient = dot(derived_layer.activate(dot_prod_cache[derived_index - 1],
-                                                                    derivative = True),
-                                                                    layer_gradient)
         delta_W = np_array(delta_W)
         delta_b = np_array(delta_b)
 
@@ -184,7 +188,7 @@ class NeuralNet:
             self.weights -= dW
             self.biases -= db.squeeze()
 
-            cost = self.layers[-1].cost(y_labels, activations_cache[-1])
+            cost = self.layers[-1].cost(y_labels, activations_cache[-1]).squeeze()
 
             if cost >= previous_cost:
                 patience_counter -= 1
@@ -218,10 +222,12 @@ class NeuralNet:
 if __name__ == '__main__':
     net = NeuralNet()
 
-    net.add_layer(InputLayer(2, 5, activation = "relu"))
-    net.add_layer(DenseLayer(3, activation = "relu"))
-    net.add_layer(OutputLayer(1, activation = "sigmoid",
-                              cost_function = "binary_crossentropy"))
+    net.add_layer(InputLayer(2, 100, activation = "relu"))
+    net.add_layer(DenseLayer(100, activation="relu"))
+    net.add_layer(BatchNormalization(100))
+    net.add_layer(DenseLayer(100, activation = "relu"))
+    net.add_layer(OutputLayer(2, activation = "softmax",
+                              cost_function = "categorical_crossentropy"))
 
     from sklearn.datasets import make_moons
 
@@ -231,11 +237,11 @@ if __name__ == '__main__':
 
     X_train, X_test, y_train, y_test = train_test_split(X_moons, y_moons, test_size = 0.2)
 
-    one_hot = y_train
+    one_hot = one_hot_encoder(y_train)
 
     net.build_model("accuracy", "xavier")
 
-    net.train(X_train[:50], one_hot[:50])
+    net.train(X_train, one_hot)
 
     y_pred = net.predict(X_test)
 
