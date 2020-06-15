@@ -1,2 +1,2 @@
 ﻿  data_processing.cpp
-LINK : fatal error LNK1104: nie można otworzyć pliku „python37_d.lib”
+  core.vcxproj -> C:\Users\Darek\PycharmProjects\NanoFlow\core\Debug\core.exe
