@@ -62,6 +62,8 @@ class NeuralNet:
         self.weights = np_array(weights)
         self.biases = np_array(biases)
 
+    @to_numpy_array
+    @add_second_dim
     def forward_propagation(self, X):
         if X.shape[1] != self.layers[0].input_shape:  # Reshaping X [x, n] where n are features of data
             X = X.T
@@ -137,6 +139,13 @@ class NeuralNet:
                 if derived_layer.trainable == False:
                     continue
 
+                """if derived_layer.regularization != "":
+                    reg_func = Regularizers.reg_methods[derived_layer.regularization]
+                    reg = reg_func.__func__(self.weights[cur_layer_index],
+                                            current_layer.reg_strength)
+
+                    delta_W[cur_layer_index] += reg"""
+
                 if derived_layer.__name__ != OutputLayer.__name__:
                     activ_func_derivative = derived_layer.activate(dot_prod_cache[derived_layer_index],
                                                                    derivative=True)
@@ -148,13 +157,6 @@ class NeuralNet:
                     layer_gradient = dot(layer_gradient.T, activations_cache[cur_layer_index])
 
                     delta_W[cur_layer_index] += layer_gradient.T
-
-                    if current_layer.regularization != "":
-                        reg_func = Regularizers.reg_methods[current_layer.regularization]
-                        reg = reg_func.__func__(self.weights[cur_layer_index],
-                                                current_layer.reg_strength)
-
-                        delta_W[cur_layer_index] += reg
 
                     break
 
@@ -170,7 +172,7 @@ class NeuralNet:
     @to_numpy_array
     @add_second_dim
     def train(self, X, y_labels, epochs = 100,
-              learning_rate = 0.01, batch_size = 100,
+              learning_rate = 0.001, batch_size = 100,
               verbose = True, patience = 10):
 
         previous_cost = 0
@@ -222,26 +224,37 @@ class NeuralNet:
 if __name__ == '__main__':
     net = NeuralNet()
 
-    net.add_layer(InputLayer(2, 100, activation = "relu"))
-    net.add_layer(DenseLayer(100, activation="relu"))
-    net.add_layer(BatchNormalization(100))
-    net.add_layer(DenseLayer(100, activation = "relu"))
-    net.add_layer(OutputLayer(2, activation = "softmax",
-                              cost_function = "categorical_crossentropy"))
+    net.add_layer(InputLayer(784, 200, activation = "relu"))
+    net.add_layer(DenseLayer(200, activation="relu"))
+    net.add_layer(DenseLayer(200, activation = "relu"))
+    net.add_layer(OutputLayer(10, activation = "softmax",
+                              cost_function = "categorical_crossentropy",
+                              regularization = "l2", reg_strength = 100))
 
-    from sklearn.datasets import make_moons
+    """from sklearn.datasets import make_moons
 
     X_moons, y_moons = make_moons(n_samples = 1000, noise = 0.1)
 
     from sklearn.model_selection import train_test_split
 
-    X_train, X_test, y_train, y_test = train_test_split(X_moons, y_moons, test_size = 0.2)
+    X_train, X_test, y_train, y_test = train_test_split(X_moons, y_moons, test_size = 0.2)"""
 
-    one_hot = one_hot_encoder(y_train)
+    from datasets.load_data import load_mnist
+
+    data = load_mnist(size = 1500)
+
+    X_train = data["data"][:1000]
+    y_train = data["labels"][:1000]
+
+    X_test = data["data"][1000:1500]
+    y_test = data["labels"][1000:1500]
+
+    y_train = one_hot_encoder(y_train)
+    y_test = one_hot_encoder(y_test)
 
     net.build_model("accuracy", "xavier")
 
-    net.train(X_train, one_hot)
+    net.train(X_train, y_train)
 
     y_pred = net.predict(X_test)
 

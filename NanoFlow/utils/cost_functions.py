@@ -1,4 +1,4 @@
-from numpy import sum, log, array as np_array, dot
+from numpy import sum, log
 from decorators import add_second_dim
 
 

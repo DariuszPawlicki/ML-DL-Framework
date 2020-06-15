@@ -17,7 +17,7 @@ def accuracy(target_labels: ndarray, predictions: ndarray):
     assert len(target_labels) == len(predictions), ("Incompatibile shapes, target_labels has length {}, "
                         "predictions has length {}.".format(len(target_labels), len(predictions)))
 
-    predictions = decode_one_hot(predictions)
+    predictions = decode_one_hot(predictions).squeeze()
     target_labels = decode_one_hot(target_labels)
 
     return str((sum((target_labels == predictions)) / len(target_labels)) * 100) + " %"
