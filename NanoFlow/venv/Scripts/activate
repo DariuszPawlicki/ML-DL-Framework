@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\Darek\PycharmProjects\ML-DL-Framework\venv"
+VIRTUAL_ENV="C:\Users\Darek\PycharmProjects\NanoFlow\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

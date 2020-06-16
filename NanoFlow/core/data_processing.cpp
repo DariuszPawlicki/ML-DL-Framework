@@ -1,92 +1,60 @@
 #include <Python.h>
+#include <arrayobject.h>
+
 #include <iostream>
+//#include "OneHotEncoder.cpp"
 
 
 using namespace std;
 
 
-class OneHotEncoder {
-
-	private:
-
-	int* labels;
-	int labels_size, classes_num;
-	int** one_hot;
-
-	public:
-
-	OneHotEncoder(int* labels, int labels_size, int classes_num) {
-		this->labels = labels;
-		this->labels_size = labels_size;
-		this->classes_num = classes_num;
-		this->one_hot = NULL;
-	}
-
-	OneHotEncoder() {
-		this->labels = NULL;
-		this->labels_size = NULL;
-		this->classes_num = NULL;
-		this->one_hot = NULL;
-	}
-
-	~OneHotEncoder(){
-		for (int i = 0; i < this->labels_size; i++) {
-			delete[] this->one_hot[i];
-		}
-
-		delete[] one_hot;
-	}
-
-	int** encode_one_hot() {
-		
-		this->one_hot = new int* [this->labels_size];
-
-
-		for (int i = 0; i < this->labels_size; i++) {
-
-			this->one_hot[i] = new int[this->classes_num];
-
-			for (int j = 0; j < this->classes_num; j++) {
-				this->one_hot[i][j] = 0;
-			}
-
-			this->one_hot[i][this->labels[i]] = 1;
-		}
-
-		return this->one_hot;
-	}
-};
-
-
 static PyObject* encode_one_hot(PyObject* self, PyObject* args) {
-		
-	int* labels = NULL;
-	int labels_size, classes_num = NULL;
-	int** one_hot = NULL;
+
+	PyArrayObject* labels;
+
+	int labels_size, classes_num;
 
 	if (!PyArg_ParseTuple(args, "Oii", &labels, &labels_size, &classes_num))
 		return NULL;
 
-	OneHotEncoder encoder(labels, labels_size, classes_num);
+	npy_intp dims[2] = {labels_size, classes_num};
 
-	one_hot = encoder.encode_one_hot();
+	PyArrayObject* one_hot = (PyArrayObject*)PyArray_ZEROS(2, dims, NPY_INT, 0);
 
-	return Py_BuildValue("O", one_hot);
+	int cur_label;
+	void* correct_label_pointer;
+
+		for (int i = 0; i < labels_size; i++) {
+			cur_label = PyLong_AsLong(PyArray_GETITEM(labels,
+										PyArray_GETPTR1(labels, i)));
+
+			correct_label_pointer = PyArray_GETPTR2(one_hot, i, cur_label);
+
+			PyArray_SETITEM(one_hot, correct_label_pointer, PyLong_FromLong(1));
+		}
+
+	
+	return PyArray_Return(one_hot);
 }
 
-static PyMethodDef dataMethods[] = {
-	{"encode_one_hot", encode_one_hot, METH_VARARGS, "Creates list of one-hot encoded vectors."},
+
+static PyMethodDef data_methods[] = {
+	{"encode_one_hot", encode_one_hot, METH_VARARGS, 
+	"Creates list of one-hot encoded vectors."},
+
 	{NULL, NULL, 0, NULL}
 };
 
-static struct PyModuleDef dataProcessing = {
+static struct PyModuleDef data_processing = {
 	PyModuleDef_HEAD_INIT,
-	"dataProcessing",
+	"data_processing",
 	"Processing data module",
 	-1,
-	dataMethods
+	data_methods
 };
 
-PyMODINIT_FUNC PyInit_dataProcessing(void) {
-	return PyModule_Create(&dataProcessing);
+PyMODINIT_FUNC PyInit_data_processing(void) {
+	import_array();
+
+	return PyModule_Create(&data_processing);
 }

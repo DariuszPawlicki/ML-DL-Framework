@@ -72,8 +72,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(PATH)/include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(PATH)/libs;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Darek\AppData\Local\Programs\Python\Python37\Lib\site-packages\numpy\core\include\numpy;$(PATH)/include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Darek\AppData\Local\Programs\Python\Python37\Lib\site-packages\numpy\lib;$(PATH)/libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -143,7 +143,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="class_test.cpp" />
     <ClCompile Include="data_processing.cpp" />
+    <ClCompile Include="OneHotEncoder.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
