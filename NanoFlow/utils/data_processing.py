@@ -1,7 +1,6 @@
 from numpy import unique, zeros, sort, ndarray, argmax, array, random
 from decorators import to_numpy_array, add_second_dim
 
-
 @to_numpy_array
 def one_hot_encoder(target_labels: ndarray):
 
