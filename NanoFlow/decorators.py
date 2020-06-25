@@ -1,7 +1,7 @@
 from numpy import ndarray, array
 
 
-def to_numpy_array(func):
+def convert_to_numpy_array(func):
 
     def wrapper(*args, **kwargs):
         args = list(args)
@@ -23,7 +23,7 @@ def to_numpy_array(func):
     return wrapper
 
 
-def add_second_dim(func):
+def expand_dimension(func):
     def wrapper(*args, **kwargs):
         args = list(args)
 

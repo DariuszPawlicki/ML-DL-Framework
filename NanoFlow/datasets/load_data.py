@@ -1,5 +1,5 @@
 import csv
-from numpy import float64, array as np_array
+import numpy as np
 
 
 def load_mnist(size = None, reshape = False):
@@ -25,8 +25,8 @@ def load_mnist(size = None, reshape = False):
             if size != None and index == size:
                 break
 
-            data.append(np_array(row[1:], dtype = float64))
-            labels.append(np_array(row[0]))
+            data.append(np.array(row[1:], dtype = np.float64))
+            labels.append(row[0])
 
             if reshape == True:
                 data[index] = data[index].reshape(data[index].shape[0], 1)

@@ -1,88 +1,78 @@
-from numpy import unique, zeros, sort, ndarray, argmax, array, random
-from decorators import to_numpy_array, add_second_dim
-
-@to_numpy_array
-def one_hot_encoder(target_labels: ndarray):
-
-    classes = unique(target_labels, return_counts = True)
-
-    one_hot_labels = zeros((target_labels.shape[0], len(classes[1])))
-
-    new_ids = {}
-
-    for i, cl in enumerate(sort(classes[0])):
-        """
-        Changing classes numeration, e.g. if classes in 'target_labels'
-        aren't continuous - [0, 1, 3] - this loop will transform them to [0, 1, 2].
-        If 'target_labels' classes are continuous -  [0, 1, 2] - they'll not change.       
-        """
-        new_ids[cl] = i
-
-    new_encoding = [new_ids[cl] for cl in target_labels]
-
-    for index, label in enumerate(new_encoding):
-        one_hot_labels[index][label] = 1
-
-    return array(one_hot_labels)
+import numpy as np
+from decorators import convert_to_numpy_array, expand_dimension
+from data_processing import encode_one_hot
 
 
-@to_numpy_array
-def decode_one_hot(labels: ndarray):
+@convert_to_numpy_array
+@expand_dimension
+def one_hot_encoder(labels_list): #TODO: Repair Bug
+     return encode_one_hot(labels_list)
+
+
+@convert_to_numpy_array
+def decode_one_hot(labels_list):
 
     try:
-        assert labels.shape[1] >= 2
+        assert labels_list.shape[1] >= 2
 
         classes = []
 
-        for row in labels:
-            classes.append(argmax(row))
+        for row in labels_list:
+            classes.append(np.argmax(row))
 
-        return array(classes)
+        return np.array(classes)
 
-    except(AssertionError):
-        return labels
+    except AssertionError:
+        print("Cannot decode labels because of "
+              "incorrect dimension size. One-Hot matrix should have"
+              "labels dimension of size at least two.")
 
 
-@to_numpy_array
-def data_split(data: ndarray, labels: ndarray, validation_split = False,
+@convert_to_numpy_array
+def data_split(data: np.ndarray, labels_list: np.ndarray, validation_split = False,
                shuffle_data = True, split_size = 0.2):
 
     """
-    Returns splitted labels and data in 2 dimensional lists,
-    where first dimension of list is data and second are labels.
+    Returns splitted labels and data in 2 two-dimensional lists - or 3 lists if validation_split flag
+    is set to True, then third list is an validation dataset -
+    where first dimension is data and second are labels.
     """
-    assert len(data) == len(labels), ("Incompatibile shapes, data has length {} "
-                        "labels has length {}.".format(len(data), len(labels)))
+    try:
+        assert len(data) == len(labels_list)
 
-    if shuffle_data == True:
-        shuffler = random.permutation(len(labels))
+        if shuffle_data == True:
+            shuffler = np.random.permutation(len(labels_list))
 
-        data = data[shuffler]
-        labels = labels[shuffler]
+            data = data[shuffler]
+            labels_list = labels_list[shuffler]
 
-    train = []
-    test = []
+        train = []
+        test = []
 
-    if validation_split == True:
-        train_size = int((1 - split_size * 2) * len(labels))
-    else:
-        train_size = int((1 - split_size) * len(labels))
+        if validation_split == True:
+            train_size = int((1 - split_size * 2) * len(labels_list))
+        else:
+            train_size = int((1 - split_size) * len(labels_list))
 
-    test_size = int(split_size * len(labels))
+        test_size = int(split_size * len(labels_list))
 
-    train.append(data[:train_size])
-    train.append(labels[:train_size])
+        train.append(data[:train_size])
+        train.append(labels_list[:train_size])
 
-    test.append(data[train_size:train_size + test_size])
-    test.append(labels[train_size:train_size + test_size])
+        test.append(data[train_size:train_size + test_size])
+        test.append(labels_list[train_size:train_size + test_size])
 
-    if validation_split == True:
-        valid = []
-        valid_size = int(split_size * len(labels))
+        if validation_split == True:
+            valid = []
+            valid_size = int(split_size * len(labels_list))
 
-        valid.append(data[train_size + test_size:train_size + test_size + valid_size])
-        valid.append(labels[train_size + test_size:train_size + test_size + valid_size])
+            valid.append(data[train_size + test_size:train_size + test_size + valid_size])
+            valid.append(labels_list[train_size + test_size:train_size + test_size + valid_size])
 
-        return train, test, valid
+            return train, test, valid
 
-    return train, test
+        return train, test
+
+    except AssertionError:
+        print("Incompatibile shapes, data has length {} "
+              "labels has length {}.".format(len(data), len(labels_list)))

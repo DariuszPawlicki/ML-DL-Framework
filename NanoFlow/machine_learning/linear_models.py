@@ -1,6 +1,6 @@
 from numpy import dot, random, sum
 from utils.cost_functions import mean_squared_error, binary_crossentropy
-from decorators import to_numpy_array, add_second_dim
+from decorators import convert_to_numpy_array, expand_dimension
 from utils.metrics import pick_metrics_method
 from abc import ABC, abstractmethod
 from utils.activations import sigmoid
@@ -39,8 +39,8 @@ class LinearRegressor(LinearModel):
     def weights_init(self):
         self.params = random.randn(1, self.features + 1)
 
-    @to_numpy_array
-    @add_second_dim
+    @convert_to_numpy_array
+    @expand_dimension
     def train(self, X, Y, learning_rate=0.001,
               iterations=10000, patience=10,
               verbose=True):
@@ -83,16 +83,16 @@ class LinearRegressor(LinearModel):
             if verbose == True:
                 print("Cost in {} iteration: ".format(i), cost)
 
-    @to_numpy_array
-    @add_second_dim
+    @convert_to_numpy_array
+    @expand_dimension
     def predict(self, X):
         if X.shape[0] != self.features:
             X = X.T
 
         return dot(self.params[1:], X) + self.params[0]
 
-    @to_numpy_array
-    @add_second_dim
+    @convert_to_numpy_array
+    @expand_dimension
     def evaluate(self, Y, predictions, metrics: str):
         metrics_method = pick_metrics_method(metrics)
 
@@ -110,8 +110,8 @@ class LogisticRegressor(LinearModel):
         self.params = random.randn(1, self.features + 1)
 
 
-    @to_numpy_array
-    @add_second_dim
+    @convert_to_numpy_array
+    @expand_dimension
     def train(self, X, Y, learning_rate=0.01, iterations=1000,
               patience=10, verbose=True):
 
@@ -155,16 +155,16 @@ class LogisticRegressor(LinearModel):
                 print("Cost in {} iteration: ".format(i), cost.squeeze())
 
 
-    @to_numpy_array
-    @add_second_dim
+    @convert_to_numpy_array
+    @expand_dimension
     def predict(self, X):
         if X.shape[0] != self.features:
             X = X.T
 
         return sigmoid(dot(self.params[0][1:], X) + self.params[0][0])
 
-    @to_numpy_array
-    @add_second_dim
+    @convert_to_numpy_array
+    @expand_dimension
     def evaluate(self, Y, predictions, metrics: str):
 
         metrics_method = pick_metrics_method(metrics)

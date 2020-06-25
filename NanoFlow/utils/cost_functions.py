@@ -1,5 +1,5 @@
 from numpy import sum, log
-from decorators import add_second_dim
+from decorators import expand_dimension
 
 
 def compute_cost(y_labels, output, cost_function: str, derivative = False):
@@ -19,14 +19,14 @@ def compute_cost(y_labels, output, cost_function: str, derivative = False):
 
     return function(y_labels, output)
 
-@add_second_dim
+@expand_dimension
 def categorical_crossentropy(y_labels, output, derivative = False):
     if derivative == True:
         return output - y_labels
 
     return -sum(y_labels * log(output)) / len(output)
 
-@add_second_dim
+@expand_dimension
 def binary_crossentropy(y_labels, output, derivative = False):
     if derivative == True:
         return (output - y_labels)
@@ -41,7 +41,7 @@ def binary_crossentropy(y_labels, output, derivative = False):
 
     return cost / len(output)
 
-@add_second_dim
+@expand_dimension
 def mean_squared_error(y_labels, output, X = None, derivative = False):
     if derivative == True:
         dW = sum((output - y_labels) * X.T) / len(output)

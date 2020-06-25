@@ -1,6 +1,6 @@
 from utils.data_processing import *
 from utils.metrics import *
-from decorators import add_second_dim, to_numpy_array
+from decorators import expand_dimension, convert_to_numpy_array
 from numpy import sqrt, random, dot, zeros, sum, array as np_array, argmax
 from deep_learning.layers import *
 from utils.regularizers import Regularizers
@@ -62,13 +62,13 @@ class NeuralNet:
         self.weights = np_array(weights)
         self.biases = np_array(biases)
 
-    @to_numpy_array
-    @add_second_dim
+    @convert_to_numpy_array
+    @expand_dimension
     def forward_propagation(self, X):
         if X.shape[1] != self.layers[0].input_shape:  # Reshaping X [x, n] where n are features of data
             X = X.T
 
-        prev_activations = X # Previous layer activation
+        prev_activations = X  # Previous layer activation
 
         dot_product = None  # Dot product of previous layer
                            #  activations and current layer weights
@@ -169,8 +169,8 @@ class NeuralNet:
         return delta_W, delta_b
 
 
-    @to_numpy_array
-    @add_second_dim
+    @convert_to_numpy_array
+    @expand_dimension
     def train(self, X, y_labels, epochs = 100,
               learning_rate = 0.001, batch_size = 100,
               verbose = True, patience = 10):
@@ -231,13 +231,6 @@ if __name__ == '__main__':
                               cost_function = "categorical_crossentropy",
                               regularization = "l2", reg_strength = 100))
 
-    """from sklearn.datasets import make_moons
-
-    X_moons, y_moons = make_moons(n_samples = 1000, noise = 0.1)
-
-    from sklearn.model_selection import train_test_split
-
-    X_train, X_test, y_train, y_test = train_test_split(X_moons, y_moons, test_size = 0.2)"""
 
     from datasets.load_data import load_mnist
 

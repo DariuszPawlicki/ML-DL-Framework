@@ -1,6 +1,6 @@
 from numpy import sum, ndarray, var
 from utils.data_processing import decode_one_hot
-from decorators import to_numpy_array, add_second_dim
+from decorators import convert_to_numpy_array, expand_dimension
 from utils.cost_functions import mean_squared_error
 
 
@@ -11,8 +11,8 @@ def pick_metrics_method(method: str):
         return r_squared
 
 
-@to_numpy_array
-@add_second_dim
+@convert_to_numpy_array
+@expand_dimension
 def accuracy(target_labels: ndarray, predictions: ndarray):
     assert len(target_labels) == len(predictions), ("Incompatibile shapes, target_labels has length {}, "
                         "predictions has length {}.".format(len(target_labels), len(predictions)))
@@ -23,8 +23,8 @@ def accuracy(target_labels: ndarray, predictions: ndarray):
     return str((sum((target_labels == predictions)) / len(target_labels)) * 100) + " %"
 
 
-@to_numpy_array
-@add_second_dim
+@convert_to_numpy_array
+@expand_dimension
 def r_squared(Y, predictions):
     variance = var(Y)
     mse = mean_squared_error(Y, predictions)
