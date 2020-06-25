@@ -11,7 +11,8 @@ def main():
           description = "C++ extension for processing large datasets.",
           author_email = "darekpl9@gmail.com",
           install_requires = ["numpy"],
-          ext_modules = [module])
+          ext_modules = [module],
+          )
 
 
 if __name__ == '__main__':
