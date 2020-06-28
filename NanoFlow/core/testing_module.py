@@ -7,3 +7,4 @@ labels_size = 30
 
 labels = np.random.randint(0, 10, labels_size)
 
+print(encode_one_hot(labels))

@@ -4,7 +4,7 @@ import numpy
 
 def main():
     module = Extension("data_processing", sources = ["data_processing.cpp"],
-                       include_dirs = [numpy.get_include() + "\\numpy"])
+                       include_dirs = [numpy.get_include() + "/numpy"])
 
     setup(name = "data_processing",
           version = "0.1a",

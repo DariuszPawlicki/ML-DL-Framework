@@ -1,1 +1,4 @@
 core/testing_module.py
+.idea
+venv
+*pycache*
