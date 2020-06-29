@@ -6,7 +6,7 @@ import numpy as np
 class TestDataProcessing(unittest.TestCase):
 
     def setUp(self):
-        self.class_vector = np.random.randint(0, 10, 500)
+        self.class_vector = np.sort(np.random.randint(0, 10, 500), axis=0)
         self.one_hot = one_hot_encoder(self.class_vector)
 
 
@@ -20,10 +20,8 @@ class TestDataProcessing(unittest.TestCase):
     def test_decode_one_hot(self):
         one_hot_1_class = np.random.randint(0, 1, 500).reshape(500, 1)
 
-        decode_one_hot(one_hot_1_class)
-
         self.assertEqual(np.allclose(decode_one_hot(self.one_hot), self.class_vector), True)
-        self.assertRaises(AssertionError, decode_one_hot(one_hot_1_class))
+        self.assertRaises(AssertionError, decode_one_hot, one_hot_1_class)
 
 
     def test_data_split(self):
@@ -39,8 +37,7 @@ class TestDataProcessing(unittest.TestCase):
         self.assertEqual(len(split_test_data[0]), 0.8 * len(test_data))
         self.assertEqual(len(split_test_dataV[0]), 0.6 * len(test_data))
         self.assertFalse(np.allclose(test_data[:int(0.8 * len(test_data))], split_test_data[0]))
-        self.assertRaises(AssertionError, data_split(test_data, self.class_vector[:10]))
-
+        self.assertRaises(AssertionError, data_split, test_data, self.class_vector[:10])
 
 
 if __name__ == '__main__':

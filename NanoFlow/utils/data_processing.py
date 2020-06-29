@@ -23,10 +23,9 @@ def decode_one_hot(labels_list):
         return np.array(classes)
 
     except AssertionError:
-        print("Cannot decode labels because of "
+        raise AssertionError("Cannot decode labels because of "
               "incorrect dimension size. One-Hot matrix should have"
               "labels dimension of size at least two.")
-
 
 @convert_to_numpy_array
 def data_split(data: np.ndarray, labels_list: np.ndarray, validation_split = False,
@@ -74,5 +73,5 @@ def data_split(data: np.ndarray, labels_list: np.ndarray, validation_split = Fal
         return train, test
 
     except AssertionError:
-        print("Incompatibile shapes, data has length {} "
+        raise AssertionError("Incompatibile shapes, data has length {} "
               "labels has length {}.".format(len(data), len(labels_list)))

@@ -26,7 +26,7 @@ def load_mnist(size = None, reshape = False):
                 break
 
             data.append(np.array(row[1:], dtype = np.float64))
-            labels.append(row[0])
+            labels.append(int(row[0]))
 
             if reshape == True:
                 data[index] = data[index].reshape(data[index].shape[0], 1)

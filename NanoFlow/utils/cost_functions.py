@@ -1,4 +1,4 @@
-from numpy import sum, log
+import numpy as np
 from decorators import expand_dimension
 
 
@@ -24,7 +24,7 @@ def categorical_crossentropy(y_labels, output, derivative = False):
     if derivative == True:
         return output - y_labels
 
-    return -sum(y_labels * log(output)) / len(output)
+    return -np.sum(y_labels * np.log(output)) / len(output)
 
 @expand_dimension
 def binary_crossentropy(y_labels, output, derivative = False):
@@ -35,18 +35,18 @@ def binary_crossentropy(y_labels, output, derivative = False):
 
     for index, label in enumerate(y_labels):
         if label == 0:
-            cost += -log(1 - output[index])
+            cost += -np.log(1 - output[index])
         else:
-            cost += -log(output[index])
+            cost += -np.log(output[index])
 
     return cost / len(output)
 
 @expand_dimension
 def mean_squared_error(y_labels, output, X = None, derivative = False):
     if derivative == True:
-        dW = sum((output - y_labels) * X.T) / len(output)
-        db = sum((output - y_labels)) / len(output)
+        dW = np.sum((output - y_labels) * X.T) / len(output)
+        db = np.sum((output - y_labels)) / len(output)
 
         return dW, db
 
-    return sum((output - y_labels) ** 2) / len(output)
+    return np.sum((output - y_labels) ** 2) / len(output)

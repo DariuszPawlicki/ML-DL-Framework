@@ -1,9 +1,9 @@
 from utils.data_processing import *
 from utils.metrics import *
 from decorators import expand_dimension, convert_to_numpy_array
-from numpy import sqrt, random, dot, zeros, sum, array as np_array, argmax
 from deep_learning.layers import *
 from utils.regularizers import Regularizers
+import numpy as np
 
 
 class NeuralNet:
@@ -45,26 +45,28 @@ class NeuralNet:
             if current_layer.trainable == True:
 
                 if param_init == "xavier":
-                    method = sqrt(1 / current_layer.input_shape)
+                    method = np.sqrt(1 / current_layer.input_shape)
                 elif param_init == "he_normal":
-                    method = sqrt(2 / (self.layers[cur_layer_index - 1].input_shape +
+                    method = np.sqrt(2 / (self.layers[cur_layer_index - 1].input_shape +
                                        current_layer.input_shape))
                 else:
                     method = 1
 
-                weights.append(random.randn(current_layer.input_shape, current_layer.output) * method)
+                weights.append(np.random.randn(current_layer.input_shape,
+                                               current_layer.output) * method)
                 biases.append(float(1))
 
             else:
                 weights.append(0)
                 biases.append(float(0))
 
-        self.weights = np_array(weights)
-        self.biases = np_array(biases)
+        self.weights = np.array(weights)
+        self.biases = np.array(biases)
+
 
     @convert_to_numpy_array
     @expand_dimension
-    def forward_propagation(self, X):
+    def forward_propagation(self, X, _training = True):
         if X.shape[1] != self.layers[0].input_shape:  # Reshaping X [x, n] where n are features of data
             X = X.T
 
@@ -80,8 +82,12 @@ class NeuralNet:
 
         for cur_layer_index, current_layer in enumerate(self.layers):
 
+            if _training == False and \
+                    current_layer.__name__ == Dropout.__name__:
+                continue
+
             if current_layer.trainable:
-                dot_product = dot(prev_activations, self.weights[cur_layer_index]) + \
+                dot_product = np.dot(prev_activations, self.weights[cur_layer_index]) + \
                               self.biases[cur_layer_index]
 
             prev_activations = current_layer.activate(dot_product)
@@ -100,24 +106,24 @@ class NeuralNet:
         """
         Cost function derivative, w.r.t to outputs.
         """
-        output_weights_gradient = dot(activations_cache[-2].T,
+        output_weights_gradient = np.dot(activations_cache[-2].T,
                                       cost_func_derivative)
         """
         Cost function derivative, w.r.t to output layer weights.
         """
 
         delta_W = []
-        delta_b = zeros((len(self.layers), 1))
+        delta_b = np.zeros((len(self.layers), 1))
 
         for current_layer in self.layers:
             if current_layer.trainable == True:
-                delta_W.append(zeros((current_layer.input_shape,
+                delta_W.append(np.zeros((current_layer.input_shape,
                                       current_layer.output)))
             else:
                 delta_W.append(0)
 
         delta_W[-1] += output_weights_gradient
-        delta_b[-1] += sum(cost_func_derivative)
+        delta_b[-1] += np.sum(cost_func_derivative)
 
         for cur_layer_index, current_layer in reversed(list(enumerate(self.layers))):
             """
@@ -152,19 +158,19 @@ class NeuralNet:
                     layer_gradient *= activ_func_derivative
 
                 if derived_layer_index == cur_layer_index:
-                    delta_b[cur_layer_index] += sum(layer_gradient)
+                    delta_b[cur_layer_index] += np.sum(layer_gradient)
 
-                    layer_gradient = dot(layer_gradient.T, activations_cache[cur_layer_index])
+                    layer_gradient = np.dot(layer_gradient.T, activations_cache[cur_layer_index])
 
                     delta_W[cur_layer_index] += layer_gradient.T
 
                     break
 
                 else:
-                    layer_gradient = dot(layer_gradient, self.weights[derived_layer_index].T)
+                    layer_gradient = np.dot(layer_gradient, self.weights[derived_layer_index].T)
 
-        delta_W = np_array(delta_W)
-        delta_b = np_array(delta_b)
+        delta_W = np.array(delta_W)
+        delta_b = np.array(delta_b)
 
         return delta_W, delta_b
 
@@ -212,8 +218,8 @@ class NeuralNet:
 
 
     def predict(self, data):
-        a_cache, _ = self.forward_propagation(data)
-        return argmax(a_cache[-1], axis = 1)
+        a_cache, _ = self.forward_propagation(data, _training = False)
+        return np.sort(np.argmax(a_cache[-1], axis = 1), axis = 0).T
 
 
     def evaluate(self, y_labels, predictions):

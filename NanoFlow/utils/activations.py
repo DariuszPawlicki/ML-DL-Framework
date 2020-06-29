@@ -1,4 +1,4 @@
-from numpy import exp, maximum, sum, var, mean
+import numpy as np
 
 
 def pick_activation(activation: str):
@@ -19,22 +19,22 @@ def relu(X, derivative = False):
 
         return X
 
-    return maximum(0, X)
+    return np.maximum(0, X)
 
 
 def sigmoid(X, derivative = False):
     if derivative == True:
         return sigmoid(X) * (1 - sigmoid(X))
 
-    return 1 / (1 + exp(-X))
+    return 1 / (1 + np.exp(-X))
 
 
 def softmax(X):
-    return exp(X) / sum(exp(X), axis = 1, keepdims = True)
+    return np.exp(X) / np.sum(np.exp(X), axis = 1, keepdims = True)
 
 
 def normalization(X):
-    me = mean(X)
-    variance = var(X)
+    me = np.mean(X)
+    variance = np.var(X)
 
     return (X - me) / variance
