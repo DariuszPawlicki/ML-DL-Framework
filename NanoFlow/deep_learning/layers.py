@@ -11,7 +11,7 @@ class Layer(ABC):
         self.output = output
         self.activation = activation
         self.__name__ = type(self).__name__
-        self.trainable = True
+        self.__trainable = True
         self.regularization = regularization
         self.reg_strength = reg_strength
 
@@ -72,7 +72,7 @@ class BatchNormalization(Layer):
                                                  reg_strength = 0, regularization = "")
         self.activation = "normalization"
         self.input_shape = self.output
-        self.trainable = False
+        self.__trainable = False
 
     def activate(self, X):
         return pick_activation(activation = self.activation)(X)
@@ -83,7 +83,7 @@ class Dropout(Layer):
         super(Dropout, self).__init__(output = output, activation = "",
                                       reg_strength = 0, regularization = "")
         self.input_shape = self.output
-        self.trainable = False
+        self.__trainable = False
 
         try:
             assert 0 <= rate <= 1

@@ -8,12 +8,12 @@ from utils.activations import sigmoid
 
 class LinearModel(ABC):
     def __init__(self):
-        self.params = None
+        self.__params = None
         self.features = None
         super().__init__()
 
     @abstractmethod
-    def weights_init(self):
+    def __weights_init(self):
         pass
 
     @abstractmethod
@@ -36,8 +36,8 @@ class LinearRegressor(LinearModel):
     def __init__(self):
         super().__init__()
 
-    def weights_init(self):
-        self.params = random.randn(1, self.features + 1)
+    def __weights_init(self):
+        self.__params = random.randn(1, self.features + 1)
 
     @convert_to_numpy_array
     @expand_dimension
@@ -54,7 +54,7 @@ class LinearRegressor(LinearModel):
 
         previous_cost = 0
 
-        self.weights_init()
+        self.__weights_init()
 
         for i in range(iterations):
             results = self.predict(X)
@@ -77,8 +77,8 @@ class LinearRegressor(LinearModel):
 
             previous_cost = cost
 
-            self.params[1:] -= learning_rate * dW
-            self.params[0] -= learning_rate * db
+            self.__params[1:] -= learning_rate * dW
+            self.__params[0] -= learning_rate * db
 
             if verbose == True:
                 print("Cost in {} iteration: ".format(i), cost)
@@ -89,7 +89,7 @@ class LinearRegressor(LinearModel):
         if X.shape[0] != self.features:
             X = X.T
 
-        return dot(self.params[1:], X) + self.params[0]
+        return dot(self.__params[1:], X) + self.__params[0]
 
     @convert_to_numpy_array
     @expand_dimension
@@ -106,8 +106,8 @@ class LogisticRegressor(LinearModel):
         super().__init__()
 
 
-    def weights_init(self):
-        self.params = random.randn(1, self.features + 1)
+    def __weights_init(self):
+        self.__params = random.randn(1, self.features + 1)
 
 
     @convert_to_numpy_array
@@ -122,7 +122,7 @@ class LogisticRegressor(LinearModel):
         previous_cost = 0
 
         self.features = X.shape[0]
-        self.weights_init()
+        self.__weights_init()
 
         for i in range(iterations):
             results = self.predict(X)
@@ -148,8 +148,8 @@ class LogisticRegressor(LinearModel):
 
             db = sum(binary_crossentropy(Y, results, derivative=True).T) / len(results)
 
-            self.params[0][1:] -= (learning_rate * dW).squeeze()
-            self.params[0][0] -= learning_rate * db
+            self.__params[0][1:] -= (learning_rate * dW).squeeze()
+            self.__params[0][0] -= learning_rate * db
 
             if verbose == True:
                 print("Cost in {} iteration: ".format(i), cost.squeeze())
@@ -161,7 +161,7 @@ class LogisticRegressor(LinearModel):
         if X.shape[0] != self.features:
             X = X.T
 
-        return sigmoid(dot(self.params[0][1:], X) + self.params[0][0])
+        return sigmoid(dot(self.__params[0][1:], X) + self.__params[0][0])
 
     @convert_to_numpy_array
     @expand_dimension

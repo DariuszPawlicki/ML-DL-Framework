@@ -32,17 +32,17 @@ class NeuralNet:
                 raise TypeError("Last layer of model must be an"
                                 " 'OutputLayer' type.")
 
-            self.weights_init(param_init = param_init)
+            self.__weights_init(param_init = param_init)
             self.metrics = pick_metrics_method(metrics)
 
 
-    def weights_init(self, param_init: str):
+    def __weights_init(self, param_init: str):
         weights = []
         biases = []
 
         for cur_layer_index, current_layer in enumerate(self.layers):
 
-            if current_layer.trainable == True:
+            if current_layer.__trainable == True:
 
                 if param_init == "xavier":
                     method = np.sqrt(1 / current_layer.input_shape)
@@ -66,7 +66,7 @@ class NeuralNet:
 
     @convert_to_numpy_array
     @expand_dimension
-    def forward_propagation(self, X, _training = True):
+    def __forward_propagation(self, X, training = True):
         if X.shape[1] != self.layers[0].input_shape:  # Reshaping X [x, n] where n are features of data
             X = X.T
 
@@ -82,11 +82,11 @@ class NeuralNet:
 
         for cur_layer_index, current_layer in enumerate(self.layers):
 
-            if _training == False and \
+            if training == False and \
                     current_layer.__name__ == Dropout.__name__:
                 continue
 
-            if current_layer.trainable:
+            if current_layer.__trainable:
                 dot_product = np.dot(prev_activations, self.weights[cur_layer_index]) + \
                               self.biases[cur_layer_index]
 
@@ -98,7 +98,7 @@ class NeuralNet:
         return activations_cache, dot_prod_cache
 
 
-    def back_propagation(self, y_labels, activations_cache, dot_prod_cache):
+    def __back_propagation(self, y_labels, activations_cache, dot_prod_cache):
         output_layer = self.layers[-1]
 
         cost_func_derivative = output_layer.cost(y_labels, activations_cache[-1],
@@ -116,7 +116,7 @@ class NeuralNet:
         delta_b = np.zeros((len(self.layers), 1))
 
         for current_layer in self.layers:
-            if current_layer.trainable == True:
+            if current_layer.__trainable == True:
                 delta_W.append(np.zeros((current_layer.input_shape,
                                       current_layer.output)))
             else:
@@ -131,7 +131,7 @@ class NeuralNet:
              with respect to 'current_layer' weights.
             """
 
-            if current_layer.trainable == False or \
+            if current_layer.__trainable == False or \
                     current_layer.__name__ == OutputLayer.__name__:
                 """
                 Layers like batch normalization or dropout are not differentiable.
@@ -142,7 +142,7 @@ class NeuralNet:
             layer_gradient = cost_func_derivative
 
             for derived_layer_index, derived_layer in reversed(list(enumerate(self.layers))):
-                if derived_layer.trainable == False:
+                if derived_layer.__trainable == False:
                     continue
 
                 """if derived_layer.regularization != "":
@@ -178,17 +178,20 @@ class NeuralNet:
     @convert_to_numpy_array
     @expand_dimension
     def train(self, X, y_labels, epochs = 100,
-              learning_rate = 0.001, batch_size = 100,
+              learning_rate = 0.001, optimizer = ("mini_batch", 100),
               verbose = True, patience = 10):
 
         previous_cost = 0
         patience_counter = patience
 
+        if optimizer[0] == "mini_batch":
+            X_batches, y_batches = self.__divide_on_batches(X, y_labels, optimizer[1])
+
         for epoch in range(epochs):
 
-            activations_cache, dot_prod_cache = self.forward_propagation(X)
+            activations_cache, dot_prod_cache = self.__forward_propagation(X)
 
-            dW, db = self.back_propagation(y_labels, activations_cache, dot_prod_cache)
+            dW, db = self.__back_propagation(y_labels, activations_cache, dot_prod_cache)
 
             dW *= learning_rate / len(X)
             db /= len(X)
@@ -216,9 +219,25 @@ class NeuralNet:
             if verbose == True:
                 print("Cost in epoch {} :".format(epoch + 1), cost)
 
+    def __divide_on_batches(self, X, y, batch_size):
+
+        X_batches = []
+        y_batches = []
+
+        batches = int(y.shape[0] / batch_size)
+        data_remaining = y.shape[0] % batch_size
+
+        for i in range(batches):
+            X_batches.append(X[i * batch_size: (i * batch_size) + batch_size])
+            y_batches.append(y[i * batch_size: (i * batch_size) + batch_size])
+
+        X_batches.append(X[X.shape[0] - data_remaining:])
+        y_batches.append(y[y.shape[0] - data_remaining:])
+
+        return X_batches, y_batches
 
     def predict(self, data):
-        a_cache, _ = self.forward_propagation(data, _training = False)
+        a_cache, _ = self.__forward_propagation(data, training= False)
         return np.sort(np.argmax(a_cache[-1], axis = 1), axis = 0).T
 
 
