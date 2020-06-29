@@ -1,2 +1,0 @@
-C:\Users\Darek\PycharmProjects\NanoFlow\core\Debug\core.exe
-C:\Users\Darek\PycharmProjects\NanoFlow\core\Debug\core.pdb
