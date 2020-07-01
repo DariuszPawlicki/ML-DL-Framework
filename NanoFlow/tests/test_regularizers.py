@@ -1,6 +1,5 @@
 import unittest
-import numpy as np
-from utils.regularizers import Regularizers
+from utils.regularizers import *
 
 
 class TestRegularizers(unittest.TestCase):

@@ -25,8 +25,8 @@ def accuracy(target_labels: np.ndarray, predictions: np.ndarray):
 
 @convert_to_numpy_array
 @expand_dimension
-def r_squared(Y, predictions):
-    variance = np.var(Y)
-    mse = mean_squared_error(Y, predictions)
+def r_squared(target_labels, predictions):
+    variance = np.var(target_labels)
+    mse = mean_squared_error(target_labels, predictions)
 
     return 1 - (variance / mse)

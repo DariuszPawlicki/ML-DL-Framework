@@ -2,7 +2,7 @@ import numpy as np
 from decorators import expand_dimension
 
 
-def compute_cost(y_labels, output, cost_function: str, derivative = False):
+def compute_cost(target_labels, predictions, cost_function: str, derivative = False):
     function = None
 
     if cost_function == "categorical_crossentropy":
@@ -15,38 +15,38 @@ def compute_cost(y_labels, output, cost_function: str, derivative = False):
         function = mean_squared_error
 
     if derivative == True:
-        return function(y_labels, output, derivative=True)
+        return function(target_labels, predictions, derivative=True)
 
-    return function(y_labels, output)
-
-@expand_dimension
-def categorical_crossentropy(y_labels, output, derivative = False):
-    if derivative == True:
-        return output - y_labels
-
-    return -np.sum(y_labels * np.log(output)) / len(output)
+    return function(target_labels, predictions)
 
 @expand_dimension
-def binary_crossentropy(y_labels, output, derivative = False):
+def categorical_crossentropy(target_labels, predictions, derivative = False):
     if derivative == True:
-        return (output - y_labels)
+        return predictions - target_labels
+
+    return -np.sum(target_labels * np.log(predictions)) / len(predictions)
+
+@expand_dimension
+def binary_crossentropy(target_labels, predictions, derivative = False):
+    if derivative == True:
+        return (predictions - target_labels)
 
     cost = 0
 
-    for index, label in enumerate(y_labels):
+    for index, label in enumerate(target_labels):
         if label == 0:
-            cost += -np.log(1 - output[index])
+            cost += -np.log(1 - predictions[index])
         else:
-            cost += -np.log(output[index])
+            cost += -np.log(predictions[index])
 
-    return cost / len(output)
+    return cost / len(predictions)
 
 @expand_dimension
-def mean_squared_error(y_labels, output, X = None, derivative = False):
+def mean_squared_error(target_labels, predictions, X = None, derivative = False):
     if derivative == True:
-        dW = np.sum((output - y_labels) * X.T) / len(output)
-        db = np.sum((output - y_labels)) / len(output)
+        dW = np.sum((predictions - target_labels) * X.T) / len(predictions)
+        db = np.sum((predictions - target_labels)) / len(predictions)
 
         return dW, db
 
-    return np.sum((output - y_labels) ** 2) / len(output)
+    return np.sum((predictions - target_labels) ** 2) / len(predictions)

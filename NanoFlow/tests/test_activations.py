@@ -1,6 +1,5 @@
 from scipy.special import expit, softmax as scipy_softmax
 from utils.activations import *
-import numpy as np
 import unittest
 
 

@@ -7,12 +7,11 @@ def main():
                        include_dirs = [numpy.get_include() + "/numpy"])
 
     setup(name = "data_processing",
-          version = "0.1a",
+          version = "0.1_a",
           description = "C++ extension for processing large datasets.",
           author_email = "darekpl9@gmail.com",
           install_requires = ["numpy"],
-          ext_modules = [module],
-          )
+          ext_modules = [module])
 
 
 if __name__ == '__main__':
