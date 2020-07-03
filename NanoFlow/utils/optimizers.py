@@ -6,8 +6,8 @@ class Optimizer(ABC):
 
     def __init__(self, beta):
         self.beta = beta
-        self.__momentum_W = None
-        self.__momentum_b = None
+        self.momentum_W = []
+        self.momentum_b = None
 
     @abstractmethod
     def update_weights(self, weights, biases, dW, db, learning_rate):
@@ -19,17 +19,22 @@ class SGD(Optimizer):
         super(SGD, self).__init__(beta)
 
     def update_weights(self, weights, biases, dW, db, learning_rate):
-        if self.__momentum_W == None and self.__momentum_b == None:
-            self.__momentum_W = np.zeros(weights.shape)
-            self.__momentum_b = np.zeros(biases.shape)
+        if self.momentum_W == [] and self.momentum_b == None:
+            for weights_matrix in weights:
+                self.momentum_W.append(np.zeros((weights_matrix.shape[0], 1)))
 
-        self.__momentum_W = self.__momentum_W * self.beta + \
-                            (1 - self.beta) * learning_rate * dW
+            self.momentum_b = np.zeros(biases.shape)
 
-        self.__momentum_b = self.__momentum_b * self.beta * \
-                            (1 - self.beta) * learning_rate * db
+        self.momentum_W = np.array(self.momentum_W)
+        self.momentum_b = np.array(self.momentum_b)
 
-        return weights - self.__momentum_W, biases - self.__momentum_b
+        self.momentum_W = self.momentum_W * self.beta + \
+                          (1 - self.beta) * learning_rate * dW
+
+        self.momentum_b = self.momentum_b * self.beta * \
+                          (1 - self.beta) * learning_rate * db
+
+        return weights - self.momentum_W, biases - self.momentum_b
 
 
 class RMSprop(Optimizer):

@@ -1,6 +1,6 @@
 import numpy as np
 from decorators import convert_to_numpy_array, expand_dimension
-from data_processing import encode_one_hot
+from preprocessing_extension import encode_one_hot
 
 
 @convert_to_numpy_array

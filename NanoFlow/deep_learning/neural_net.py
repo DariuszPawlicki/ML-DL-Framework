@@ -5,7 +5,6 @@ from deep_learning.layers import *
 from utils.regularizers import Regularizers
 from utils.optimizers import *
 
-
 class NeuralNet:
 
     def __init__(self):
@@ -156,11 +155,12 @@ class NeuralNet:
                 biases.append(float(1))
 
             else:
-                weights.append(0)
-                biases.append(float(0))
+                weights.append(np.array([0]))
+                biases.append(0)
 
         self.__weights = np.array(weights)
         self.__biases = np.array(biases)
+        self.__biases = self.__biases.reshape(self.__biases.shape[0], 1)
 
 
     @convert_to_numpy_array
