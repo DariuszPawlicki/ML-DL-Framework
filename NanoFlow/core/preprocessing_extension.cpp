@@ -62,7 +62,7 @@ static PyObject* encode_one_hot(PyObject* self, PyObject* args, PyObject* kwargs
 }
 
 
-static PyMethodDef data_methods[] = {
+static PyMethodDef preprocessing_methods[] = {
 	{"encode_one_hot", (PyCFunction)encode_one_hot, METH_VARARGS | METH_KEYWORDS, 
 	"encode_one_hot(labels_list: list)\n\n"
 	"Returns numpy array of one-hot encoded vectors."},
@@ -70,16 +70,16 @@ static PyMethodDef data_methods[] = {
 	{NULL, NULL, 0, NULL}
 };
 
-static struct PyModuleDef data_processing = {
+static struct PyModuleDef preprocessing_extension = {
 	PyModuleDef_HEAD_INIT,
-	"data_processing",
+	"preprocessing_extension",
 	"Processing data module",
 	-1,
-	data_methods
+	preprocessing_methods
 };
 
-PyMODINIT_FUNC PyInit_data_processing(void) {
+PyMODINIT_FUNC PyInit_preprocessing_extension(void) {
 	import_array();
 
-	return PyModule_Create(&data_processing);
+	return PyModule_Create(&preprocessing_extension);
 }

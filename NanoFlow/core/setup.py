@@ -3,10 +3,10 @@ import numpy
 
 
 def main():
-    module = Extension("data_processing", sources = ["data_processing.cpp"],
+    module = Extension("preprocessing_extension", sources = ["preprocessing_extension.cpp"],
                        include_dirs = [numpy.get_include() + "/numpy"])
 
-    setup(name = "data_processing",
+    setup(name = "preprocessing_extension",
           version = "0.1_a",
           description = "C++ extension for processing large datasets.",
           author_email = "darekpl9@gmail.com",
