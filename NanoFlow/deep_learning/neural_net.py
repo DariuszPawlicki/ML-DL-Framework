@@ -5,6 +5,7 @@ from deep_learning.layers import *
 from utils.regularizers import Regularizers
 from utils.optimizers import *
 
+
 class NeuralNet:
 
     def __init__(self):
@@ -14,6 +15,7 @@ class NeuralNet:
         self.__metrics = None
         self.__optimizer: Optimizer = None
         self.__learning_rate = None
+        self.__decay_rate = None
 
 
     def add_layer(self, layer: Layer):
@@ -28,7 +30,8 @@ class NeuralNet:
 
 
     def build_model(self, metrics: str, param_init: str,
-                    optimizer: Optimizer, learning_rate = 0.001):
+                    optimizer: Optimizer, learning_rate = 0.001,
+                    decay_rate = 0):
 
             if self.__layers[-1].__name__ != OutputLayer.__name__:
                 raise TypeError("Last layer of model must be an"
@@ -38,6 +41,7 @@ class NeuralNet:
             self.__metrics = pick_metrics_method(metrics)
             self.__optimizer = optimizer
             self.__learning_rate = learning_rate
+            self.__decay_rate = decay_rate
 
     def summary(self):
         print("\n\n")
@@ -59,14 +63,10 @@ class NeuralNet:
     @convert_to_numpy_array
     @expand_dimension
     def train(self, X, target_labels, epochs=100,
-              learning_rate=0.001, optimizer=("mini_batch", 100),
-              verbose=True, patience=10, decay_rate = 0):
+              verbose=True, patience=10, gradient_checking = False):
 
         previous_cost = 0
         patience_counter = patience
-
-        if optimizer[0] == "mini_batch":
-            X_batches, y_batches = self.__divide_on_batches(X, target_labels, optimizer[1])
 
         for epoch in range(epochs):
 
@@ -74,8 +74,8 @@ class NeuralNet:
 
             dW, db = self.__back_propagation(target_labels, activations_cache, dot_prod_cache)
 
-            dW /= len(X)
-            db /= len(X)
+            if gradient_checking == True:
+                self.grad_check(dW, db, X, target_labels)
 
             self.__weights, self.__biases = self.__optimizer.update_weights(self.__weights,
                                                                             self.__biases,
@@ -88,9 +88,7 @@ class NeuralNet:
                 patience_counter -= 1
 
                 if patience_counter == 0:
-                    print("Gradient descent is on plateau/diverging,"
-                          "\ntry different learning rate or "
-                          "feature engineering.\n")
+                    print("Gradient descent is on plateau/diverging.")
 
                     print("Cost: ", cost)
                     break
@@ -99,11 +97,65 @@ class NeuralNet:
 
             previous_cost = cost
 
-            if decay_rate > 0:
-                learning_rate *= 1/(1 + decay_rate * epoch)
+            if self.__decay_rate > 0:
+                self.__learning_rate *= 1/(1 + self.__decay_rate * epoch)
 
             if verbose == True:
                 print("Cost in epoch {} :".format(epoch + 1), cost)
+
+
+    def grad_check(self, dW, db, X, target_labels, epsilon=1e-7):
+
+        dW_approx = []
+
+        for layer_gradient in dW:
+            dW_approx.append(np.zeros(layer_gradient.shape))
+
+        for layer_index, layer_weights in enumerate(self.__weights):
+
+            if self.__layers[layer_index].trainable == False:
+                continue
+
+            for row_id, row in enumerate(layer_weights):
+
+                for param_id, param in enumerate(row):
+
+                    param_cached = param
+                    param_plus = param + epsilon
+                    param_minus = param - epsilon
+
+                    self.__weights[layer_index][row_id][param_id] = param_plus
+
+                    activations_plus, _ = self.__forward_propagation(X)
+
+                    self.__weights[layer_index][row_id][param_id] = param_minus
+
+                    activations_minus, _ = self.__forward_propagation(X)
+
+                    self.__weights[layer_index][row_id][param_id] = param_cached
+
+                    J_plus = self.__layers[-1].cost(target_labels, activations_plus[-1])
+                    J_minus = self.__layers[-1].cost(target_labels, activations_minus[-1])
+
+                    two_sided_difference = (J_plus - J_minus) / (2 * epsilon)
+                    dW_approx[layer_index][row_id][param_id] = two_sided_difference
+
+        dW_approx_vector = np.array([])
+        dW_vector = np.array([])
+
+        for approx_weights_grad, weights_grad in zip (dW_approx, dW):
+            dW_approx_vector = np.concatenate((dW_approx_vector, approx_weights_grad.ravel()))
+            dW_vector = np.concatenate((dW_vector, weights_grad.ravel()))
+
+        numerator = np.linalg.norm(dW_vector - dW_approx_vector)
+        denominator = np.linalg.norm(dW_vector) + np.linalg.norm(dW_approx_vector)
+
+        difference = numerator / denominator
+
+        if difference > 1e-7:
+            raise ValueError("Numerical and analytical gradients differ a lot,\n"
+                             "            check backpropagation derivation. \n"
+                             "            Difference is equal {}".format(difference))
 
 
     def predict(self, data):
@@ -152,13 +204,15 @@ class NeuralNet:
 
                 weights.append(np.random.randn(current_layer.input_shape,
                                                current_layer.output_shape) * method)
+
                 biases.append(float(1))
 
             else:
                 weights.append(np.array([0]))
                 biases.append(0)
 
-        self.__weights = np.array(weights)
+
+        self.__weights = weights
         self.__biases = np.array(biases)
         self.__biases = self.__biases.reshape(self.__biases.shape[0], 1)
 
@@ -172,7 +226,7 @@ class NeuralNet:
         prev_activations = X  # Previous layer activation
 
         dot_product = None  # Dot product of previous layer
-                           #  activations and current layer weights
+                            #  activations and current layer weights
 
         activations_cache = []
         dot_prod_cache = []
@@ -194,6 +248,7 @@ class NeuralNet:
             activations_cache.append(prev_activations)
             dot_prod_cache.append(dot_product)
 
+
         return activations_cache, dot_prod_cache
 
 
@@ -206,7 +261,7 @@ class NeuralNet:
         Cost function derivative, w.r.t to outputs.
         """
         output_weights_gradient = np.dot(activations_cache[-2].T,
-                                      cost_func_derivative)
+                                            cost_func_derivative)
         """
         Cost function derivative, w.r.t to output layer weights.
         """
@@ -219,7 +274,7 @@ class NeuralNet:
                 delta_W.append(np.zeros((current_layer.input_shape,
                                       current_layer.output_shape)))
             else:
-                delta_W.append(0)
+                delta_W.append(np.array([0]))
 
         delta_W[-1] += output_weights_gradient
         delta_b[-1] += np.sum(cost_func_derivative)
@@ -244,13 +299,6 @@ class NeuralNet:
                 if derived_layer.trainable == False:
                     continue
 
-                """if derived_layer.regularization != "":
-                    reg_func = Regularizers.reg_methods[derived_layer.regularization]
-                    reg = reg_func.__func__(self.weights[cur_layer_index],
-                                            current_layer.reg_strength)
-
-                    delta_W[cur_layer_index] += reg"""
-
                 if derived_layer.__name__ != OutputLayer.__name__:
                     activ_func_derivative = derived_layer.activate(dot_prod_cache[derived_layer_index],
                                                                    derivative=True)
@@ -268,8 +316,10 @@ class NeuralNet:
                 else:
                     layer_gradient = np.dot(layer_gradient, self.__weights[derived_layer_index].T)
 
-        delta_W = np.array(delta_W)
-        delta_b = np.array(delta_b)
+        for layer_gradient in delta_W:
+            layer_gradient /= len(activations_cache[0])
+
+        delta_b = np.array(delta_b) / len(activations_cache[0])
 
         return delta_W, delta_b
 
@@ -277,31 +327,31 @@ class NeuralNet:
 if __name__ == '__main__':
     net = NeuralNet()
 
-    net.add_layer(InputLayer(784, 200, activation = "relu"))
-    net.add_layer(BatchNormalization(200))
-    net.add_layer(DenseLayer(200, activation="relu"))
-    net.add_layer(DenseLayer(200, activation = "relu"))
-    net.add_layer(OutputLayer(10, activation = "softmax",
-                              cost_function = "categorical_crossentropy",
-                              regularization = "l2", reg_strength = 100))
+    net.add_layer(InputLayer(784, 2,activation="relu"))
+    net.add_layer(OutputLayer(10, activation="softmax",
+                              cost_function="categorical_crossentropy"))
 
     from datasets.load_data import load_mnist
 
-    data = load_mnist(size=1500)
+    data = load_mnist()
 
-    X_train = data["data"][:1000]
-    y_train = data["labels"][:1000]
+    X_train = data["data"][:100]
+    y_train = data["labels"][:100]
 
-    X_test = data["data"][1000:1500]
-    y_test = data["labels"][1000:1500]
+    X_test = data["data"][9000:]
+    y_test = data["labels"][9000:]
 
     y_train = one_hot_encoder(y_train)
     y_test = one_hot_encoder(y_test)
 
-    net.build_model("accuracy", "xavier", SGD(), learning_rate=0.001)
 
-    net.train(X_train, y_train, decay_rate=0)
+    net.build_model("accuracy", "xavier", SGD(beta=0), learning_rate=0.001,
+                    decay_rate=0)
 
-    y_pred = net.predict(X_test)
+    net.train(X_train, y_train, epochs=1000, gradient_checking=True)
 
-    net.evaluate(y_test, y_pred)
+    net.evaluate(y_train, net.predict(X_train))
+
+    #TODO: poupraszczać konwersję list na listy typu np.array
+    #TODO: dodać do funckcji grad_check sprawdzenie pochodnej biasu
+    #TODO: zmienić enkoder one_hot, uwzględnić najwyższy numer klasy i enkodować na jego podstawie

@@ -24,7 +24,7 @@ def decode_one_hot(labels_list):
 
     except AssertionError:
         raise AssertionError("Cannot decode labels because of "
-              "incorrect dimension size. One-Hot matrix should have"
+              "incorrect dimension size. One-Hot matrix should have "
               "labels dimension of size at least two.")
 
 @convert_to_numpy_array

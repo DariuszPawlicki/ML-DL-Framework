@@ -29,7 +29,7 @@ def categorical_crossentropy(target_labels, predictions, derivative = False):
 @expand_dimension
 def binary_crossentropy(target_labels, predictions, derivative = False):
     if derivative == True:
-        return (predictions - target_labels)
+        return predictions - target_labels
 
     cost = 0
 

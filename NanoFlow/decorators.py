@@ -4,6 +4,7 @@ from numpy import ndarray, array
 def convert_to_numpy_array(func):
 
     def wrapper(*args, **kwargs):
+
         args = list(args)
 
         for i, arg in enumerate(args):
