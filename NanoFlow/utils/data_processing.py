@@ -6,7 +6,7 @@ from preprocessing_extension import encode_one_hot
 @convert_to_numpy_array
 @expand_dimension
 def one_hot_encoder(labels_list):
-     return encode_one_hot(labels_list)
+     return encode_one_hot(labels_list.squeeze())
 
 
 @convert_to_numpy_array

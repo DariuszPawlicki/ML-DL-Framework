@@ -348,10 +348,11 @@ if __name__ == '__main__':
     net.build_model("accuracy", "xavier", SGD(beta=0), learning_rate=0.001,
                     decay_rate=0)
 
-    net.train(X_train, y_train, epochs=1000, gradient_checking=True)
+    net.train(X_train, y_train, epochs=100)
 
-    net.evaluate(y_train, net.predict(X_train))
+    predictions = net.predict(X_train)
+
+    net.evaluate(y_train, predictions)
 
     #TODO: poupraszczać konwersję list na listy typu np.array
-    #TODO: dodać do funckcji grad_check sprawdzenie pochodnej biasu
-    #TODO: zmienić enkoder one_hot, uwzględnić najwyższy numer klasy i enkodować na jego podstawie
+    #TODO: dodać do funkcji grad_check sprawdzenie pochodnej biasu

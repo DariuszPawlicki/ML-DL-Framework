@@ -6,3 +6,7 @@ from deep_learning.neural_net import *
 
 
 
+array = np.array([7])
+
+
+print(encode_one_hot(array))
