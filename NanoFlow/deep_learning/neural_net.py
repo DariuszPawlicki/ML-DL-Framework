@@ -80,7 +80,8 @@ class NeuralNet:
             self.__weights, self.__biases = self.__optimizer.update_weights(self.__weights,
                                                                             self.__biases,
                                                                             dW, db,
-                                                                            self.__learning_rate)
+                                                                            self.__learning_rate,
+                                                                            self.__layers)
 
             cost = self.__layers[-1].cost(target_labels, activations_cache[-1]).squeeze()
 
@@ -160,7 +161,7 @@ class NeuralNet:
 
     def predict(self, data):
         a_cache, _ = self.__forward_propagation(data, training= False)
-        return np.sort(np.argmax(a_cache[-1], axis = 1), axis = 0).T
+        return np.argmax(a_cache[-1], axis = 1)
 
 
     def evaluate(self, target_labels, predictions):
@@ -316,8 +317,9 @@ class NeuralNet:
                 else:
                     layer_gradient = np.dot(layer_gradient, self.__weights[derived_layer_index].T)
 
-        for layer_gradient in delta_W:
-            layer_gradient /= len(activations_cache[0])
+        for layer_id, layer_gradient in enumerate(delta_W):
+            if self.__layers[layer_id].trainable == True:
+                layer_gradient /= len(activations_cache[0])
 
         delta_b = np.array(delta_b) / len(activations_cache[0])
 
@@ -327,7 +329,9 @@ class NeuralNet:
 if __name__ == '__main__':
     net = NeuralNet()
 
-    net.add_layer(InputLayer(784, 2,activation="relu"))
+    net.add_layer(InputLayer(784, 128,activation="relu"))
+    net.add_layer(DenseLayer(64, activation="relu"))
+    net.add_layer(DenseLayer(32, activation="relu"))
     net.add_layer(OutputLayer(10, activation="softmax",
                               cost_function="categorical_crossentropy"))
 
@@ -335,8 +339,8 @@ if __name__ == '__main__':
 
     data = load_mnist()
 
-    X_train = data["data"][:100]
-    y_train = data["labels"][:100]
+    X_train = data["data"][:5000]
+    y_train = data["labels"][:5000]
 
     X_test = data["data"][9000:]
     y_test = data["labels"][9000:]
@@ -350,9 +354,8 @@ if __name__ == '__main__':
 
     net.train(X_train, y_train, epochs=100)
 
-    predictions = net.predict(X_train)
+    predictions = net.predict(X_test)
 
-    net.evaluate(y_train, predictions)
+    net.evaluate(y_test, predictions)
 
-    #TODO: poupraszczać konwersję list na listy typu np.array
     #TODO: dodać do funkcji grad_check sprawdzenie pochodnej biasu

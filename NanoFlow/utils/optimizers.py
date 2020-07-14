@@ -10,7 +10,7 @@ class Optimizer(ABC):
         self.momentum_b = None
 
     @abstractmethod
-    def update_weights(self, weights, biases, dW, db, learning_rate):
+    def update_weights(self, weights, biases, dW, db, learning_rate, layers):
         pass
 
 
@@ -18,11 +18,12 @@ class SGD(Optimizer):
     def __init__(self, beta = 0.9):
         super(SGD, self).__init__(beta)
 
-    def update_weights(self, weights, biases, dW, db, learning_rate):
+    def update_weights(self, weights, biases, dW, db, learning_rate, layers):
         if self.beta == 0:
             for layer_id, layer_weights in enumerate(weights):
-                layer_weights -= learning_rate * dW[layer_id]
-                weights[layer_id] = layer_weights
+                if layers[layer_id].trainable == True:
+                    layer_weights -= learning_rate * dW[layer_id]
+                    weights[layer_id] = layer_weights
 
             return weights, biases - learning_rate * db
 
